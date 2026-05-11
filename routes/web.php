@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AlbumController;
+use App\Http\Controllers\GenderController;
 use App\Http\Controllers\PlaylistController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SongController;
@@ -28,6 +29,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('/songs', SongController::class);
     Route::resource('/albums', AlbumController::class);
     Route::resource('/playlists', PlaylistController::class);
+    Route::resource('/genders', GenderController::class);
 });
 
 require __DIR__.'/auth.php';

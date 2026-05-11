@@ -21,6 +21,8 @@ import IvoryTusksIcon from '@/Components/Icons/IvoryTusksIcon.vue';
 import MusicalNoteIcon from '@/Components/Icons/MusicalNoteIcon.vue';
 import RectangleStackIcon from '@/Components/RectangleStackIcon.vue';
 import HeartIcon from '@/Components/Icons/HeartIcon.vue';
+import Footer from '@/Components/Footer.vue';
+import NowPlaying from '@/Components/NowPlaying.vue';
 
 const isDark = ref(false);
 const sidebarExpanded = ref(true);
@@ -80,7 +82,7 @@ const toggleTheme = () => {
 
                         <!-- Logo Text (only shows when expanded) -->
                         <div v-if="sidebarExpanded" class="transition-all duration-300">
-                            <h1 class="text-lg font-bold dark:text-gray-100 dark:text-white leading-tight">
+                            <h1 class="text-lg font-bold dark:text-gray-200 text-gray-800 leading-tight">
                                 Kizuna<span class="text-red-600">Sound</span>
                             </h1>
                             <p class="text-xs text-gray-400 dark:text-gray-400">
@@ -96,7 +98,7 @@ const toggleTheme = () => {
                 <div class="flex-1 overflow-y-auto py-6 space-y-2">
                     <div v-if="sidebarExpanded" class="transition-all duration-300">
                         <h1 class="flex justify-center text-lg font-bold text-red-600">
-                            <HeartIcon />Your<span class="dark:text-gray-100"> Music</span>
+                            <HeartIcon />Your<span class="dark:text-gray-200 text-gray-800">Music</span>
                         </h1>
                     </div>
                     <div class="px-3">
@@ -148,12 +150,6 @@ const toggleTheme = () => {
                                 :class="route().current('albums.index') || route().current('albums.create') || route().current('albums.edit') || route().current('albums.show') ? 'text-white' : ''">Albums</span>
                         </Link>
                     </div>
-
-                    <div v-if="sidebarExpanded" class="transition-all duration-300">
-                        <h1 class="flex justify-center text-lg font-bold text-red-600">
-                            <CategoryIcon />Play<span class="dark:text-gray-100"> List</span>
-                        </h1>
-                    </div>
                     <!-- Playlist -->
                     <div class="px-3">
                         <Link :href="route('playlists.index')" :class="[
@@ -170,10 +166,27 @@ const toggleTheme = () => {
                                 :class="route().current('playlists.index') || route().current('playlists.create') || route().current('playlists.edit') || route().current('playlists.show') ? 'text-white' : ''">Playlists</span>
                         </Link>
                     </div>
+                    <!-- genders -->
+                    <div class="px-3">
+                        <Link :href="route('genders.index')" :class="[
+                            route().current('genders.index') || route().current('genders.create') || route().current('genders.edit') || route().current('genders.show')
+                                ? 'bg-red-600 text-white font-semibold'
+                                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-red-600 dark:hover:text-red-400',
+                            'group flex items-center px-3 py-3 text-sm rounded-md transition-all',
+                            { 'justify-center': !sidebarExpanded }
+                        ]">
+                            <CategoryIcon
+                                :class="route().current('genders.index') || route().current('genders.create') || route().current('genders.edit') || route().current('genders.show') ? 'text-white' : 'text-gray-700 dark:text-gray-300 group-hover:text-red-600 dark:group-hover:text-red-400'"
+                                class="h-5 w-5" />
+                            <span v-if="sidebarExpanded" class="truncate ml-3"
+                                :class="route().current('genders.index') || route().current('genders.create') || route().current('genders.edit') || route().current('genders.show') ? 'text-white' : ''">Genders</span>
+                        </Link>
+                    </div>
+
                 </div>
             </aside>
 
-            <div class="flex flex-col flex-1 transition-all duration-300"
+            <div class="flex flex-col min-h-screen flex-1 transition-all duration-300"
                 :class="{ 'sm:ml-64': sidebarExpanded, 'sm:ml-20': !sidebarExpanded }">
 
                 <!-- Top bar (solo para móviles) -->
@@ -232,6 +245,10 @@ const toggleTheme = () => {
                             </ResponsiveNavLink>
                             <ResponsiveNavLink :href="route('albums.index')" :active="route().current('albums.index')">
                                 Albums
+                            </ResponsiveNavLink>
+                            <ResponsiveNavLink :href="route('genders.index')"
+                                :active="route().current('genders.index')">
+                                Genders
                             </ResponsiveNavLink>
                         </div>
                         <div class="pt-4 pb-1 border-t border-gray-200 dark:border-gray-700">
@@ -309,9 +326,16 @@ const toggleTheme = () => {
                 </header>
 
                 <!-- Page Content -->
-                <main class="flex-1  transition-all duration-300">
+
+                <main class="flex-1">
                     <slot />
                 </main>
+
+                <!-- <div class="flex-1">
+                    <NowPlaying class="transition-all duration-300 sticky top-[100vh]" />
+                </div> -->
+
+                <Footer class="transition-all duration-300 sticky top-[100vh]" />
             </div>
         </div>
     </div>

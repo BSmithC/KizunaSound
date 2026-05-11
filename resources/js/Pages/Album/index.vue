@@ -1,11 +1,17 @@
 <template>
     <AuthenticatedLayout>
         <template #header>
-            <div class="flex">
+            <div class="flex-1">
                 <h1 class="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-200">
                     Album
                 </h1>
             </div>
+            <Button as-child>
+                <Link href="/songs/create">
+                New Album
+                <AddIcon />
+                </Link>
+            </Button>
         </template>
         <template #default>
             <div class="mx-auto max-w-7xl py-8">
@@ -198,15 +204,21 @@
 </template>
 
 <script>
+import AddIcon from '@/Components/Icons/AddIcon.vue';
 import MagnifyingGlassIcon from '@/Components/Icons/MagnifyingGlassIcon.vue';
+import Button from '@/Components/ui/button/Button.vue';
 import Input from '@/Components/ui/input/Input.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
+import { Link } from '@inertiajs/vue3';
 
 export default {
     components: {
         AuthenticatedLayout,
         MagnifyingGlassIcon,
-        Input
+        Input,
+        Button,
+        Link,
+        AddIcon
     },
 }
 </script>

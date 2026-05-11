@@ -2,16 +2,36 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Playlist;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class PlaylistController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        //
+        $query = Playlist::query();
+
+        if ($request->filled('search')) {
+            $query->where(function ($q) use ($request) {
+                $q->where('name', 'like', "{$request->search}")
+                    ->orWhere('description', 'like', "{$request->search}");
+            });
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        $playlists = $query->latest()->paginate(10)->withQueryString();
+
+        return Inertia::render('Playlist/index', [
+            'playlists' => $playlists,
+            'filters' => $request->only(['search', 'status']),
+        ]);
     }
 
     /**
@@ -19,7 +39,7 @@ class PlaylistController extends Controller
      */
     public function create()
     {
-        //
+        return Inertia::render('Playlist/create');
     }
 
     /**
@@ -27,7 +47,13 @@ class PlaylistController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $validated = $request->validate([
+            'name' => 'required|string',
+            'description' => 'required|string',
+        ]);
+        Playlist::create($validated);
+
+        return redirect()->route('playlists.index');
     }
 
     /**
@@ -43,7 +69,9 @@ class PlaylistController extends Controller
      */
     public function edit(string $id)
     {
-        //
+        $playlist = Playlist::findOrFail($id);
+
+        return Inertia::render('Playlist/edit', compact('playlist'));
     }
 
     /**
@@ -51,7 +79,17 @@ class PlaylistController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        //
+        $playlist = Playlist::findOrFail($id);
+
+        $validated = $request->validate([
+            'name' => 'requierd|string',
+            'description' => 'requierd|string',
+        ]);
+
+        $playlist->update($validated);
+
+        return redirect()->route('playlists.index')->with('sucess', 'a');
+
     }
 
     /**
@@ -59,6 +97,11 @@ class PlaylistController extends Controller
      */
     public function destroy(string $id)
     {
-        //
+        $playlist = Playlist::findOrFail($id);
+
+        $playlist->status = 0;
+        $playlist->save();
+
+        return redirect()->route('playlists.index')->with('sucess', 'a');
     }
 }
