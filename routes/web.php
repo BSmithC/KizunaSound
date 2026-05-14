@@ -30,6 +30,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('/albums', AlbumController::class);
     Route::resource('/playlists', PlaylistController::class);
     Route::resource('/genders', GenderController::class);
+    Route::get('/songs/{song}/stream', [SongController::class, 'stream'])->name('songs.stream');
 });
 
 require __DIR__.'/auth.php';

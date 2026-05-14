@@ -1,11 +1,11 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watchEffect } from 'vue';
 import ApplicationLogo from '@/Components/ApplicationLogo.vue';
 import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
 import NavLink from '@/Components/NavLink.vue';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink.vue';
-import { Link } from '@inertiajs/vue3';
+import { Link, usePage } from '@inertiajs/vue3';
 import { switchTheme, setThemeOnLoad } from '../theme.js';
 import HomeIcon from '@/Components/Icons/HomeIcon.vue';
 import ProductIcon from '@/Components/Icons/ProductIcon.vue';
@@ -22,11 +22,40 @@ import MusicalNoteIcon from '@/Components/Icons/MusicalNoteIcon.vue';
 import RectangleStackIcon from '@/Components/RectangleStackIcon.vue';
 import HeartIcon from '@/Components/Icons/HeartIcon.vue';
 import Footer from '@/Components/Footer.vue';
-import NowPlaying from '@/Components/NowPlaying.vue';
+import { useToast } from 'vue-toastification';
+import MusicPlayer from '@/Components/MusicPlayer.vue';
+import { usePlayer } from '@/Composables/usePlayer'
+import { provide } from 'vue'
 
 const isDark = ref(false);
 const sidebarExpanded = ref(true);
 const showingNavigationDropdown = ref(false);
+const toast = useToast();
+const page = usePage();
+const shownFlash = ref(null);
+
+const player = usePlayer()
+provide('player', player)
+
+watchEffect(() => {
+    const flash = page.props.flash;
+
+    if (flash.toast && flash.toast !== shownFlash.value) {
+        const style = flash.toastStyle || 'success';
+
+        if (style === 'danger' || style === 'error') {
+            toast.error(flash.toast);
+        } else if (style === 'info') {
+            toast.info(flash.toast);
+        } else if (style === 'warning') {
+            toast.warning(flash.toast);
+        } else {
+            toast.success(flash.toast);
+        }
+
+        shownFlash.value = flash.toast;
+    }
+});
 
 const toggleSidebar = () => {
     sidebarExpanded.value = !sidebarExpanded.value;
@@ -331,9 +360,9 @@ const toggleTheme = () => {
                     <slot />
                 </main>
 
-                <!-- <div class="flex-1">
-                    <NowPlaying class="transition-all duration-300 sticky top-[100vh]" />
-                </div> -->
+                <div class="flex-1">
+                    <MusicPlayer />
+                </div>
 
                 <Footer class="transition-all duration-300 sticky top-[100vh]" />
             </div>

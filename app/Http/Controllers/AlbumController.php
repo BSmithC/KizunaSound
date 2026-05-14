@@ -13,15 +13,27 @@ class AlbumController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Album::query();
+        $query = Album::query()->with('songs');
 
         if ($request->filled('search')) {
-            $query->where(function($q) use ($request){
+            $query->where(function ($q) use ($request) {
                 $q->where('name', 'like', "%{$request->search}%");
             });
         }
 
-        return Inertia::render('Album/index');
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        $albums = $query->latest()->paginate(10)->withQueryString();
+
+        return Inertia::render('Album/index', [
+            'albums' => $albums,
+            'filters' => $request->only([
+                'search',
+                'status',
+                ]),
+        ]);
     }
 
     /**
@@ -41,6 +53,7 @@ class AlbumController extends Controller
             'name' => 'required|string',
             'license' => 'required|string',
         ]);
+
         return redirect()->route('albums.index')->with('success', 'Se guardado correctamente');
     }
 
