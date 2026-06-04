@@ -7,6 +7,7 @@ import { createApp, h } from 'vue';
 import { ZiggyVue } from '../../vendor/tightenco/ziggy';
 import Toast, { POSITION } from 'vue-toastification';
 import 'vue-toastification/dist/index.css';
+import { createPinia } from 'pinia'
 
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
@@ -19,6 +20,7 @@ createInertiaApp({
             import.meta.glob('./Pages/**/*.vue'),
         ),
     setup({ el, App, props, plugin }) {
+        const pinia = createPinia()
         return createApp({ render: () => h(App, props) })
             .use(plugin)
             .use(Toast, {
@@ -26,6 +28,7 @@ createInertiaApp({
                 timeout: 5000,
             })
             .use(ZiggyVue)
+            .use(pinia)
             .mount(el);
     },
     progress: {

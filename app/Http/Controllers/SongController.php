@@ -135,7 +135,7 @@ class SongController extends Controller
             'name' => 'required|string',
             'thumbnail' => 'nullable|image',
             'lyrics' => 'required|string',
-            'audio' => 'required|mimes:mp3,wav,ogg|max:10240', // máximo 10MB
+            'audio' => 'required|mimes:mp3,wav,ogg|max:10240',
         ]);
 
         // Si artist_id está vacío, asignamos el Auth::id()
@@ -206,7 +206,7 @@ class SongController extends Controller
 
         $song->update($validated);
 
-        return redirect()->back()->route('songs.index')->with('toast', 'Song  correctly');
+        return redirect()->back()->route('songs.index')->with('toast', 'Song has been successfully updated.');
     }
 
     /**

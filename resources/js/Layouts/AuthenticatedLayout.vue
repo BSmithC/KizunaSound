@@ -24,7 +24,6 @@ import HeartIcon from '@/Components/Icons/HeartIcon.vue';
 import Footer from '@/Components/Footer.vue';
 import { useToast } from 'vue-toastification';
 import MusicPlayer from '@/Components/MusicPlayer.vue';
-import { usePlayer } from '@/Composables/usePlayer'
 import { provide } from 'vue'
 
 const isDark = ref(false);
@@ -34,8 +33,6 @@ const toast = useToast();
 const page = usePage();
 const shownFlash = ref(null);
 
-const player = usePlayer()
-provide('player', player)
 
 watchEffect(() => {
     const flash = page.props.flash;
@@ -361,7 +358,7 @@ const toggleTheme = () => {
                 </main>
 
                 <div class="flex-1">
-                    <MusicPlayer />
+                    <MusicPlayer class="transition-all duration-300" />
                 </div>
 
                 <Footer class="transition-all duration-300 sticky top-[100vh]" />

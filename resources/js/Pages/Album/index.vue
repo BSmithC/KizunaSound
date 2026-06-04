@@ -7,7 +7,7 @@
                 </h1>
                 <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Discover and manage your favorite tracks</p>
             </div>
-            <Button as-child>
+            <Button class="bg-gray-100" as-child>
                 <Link href="/albums/create">
                 <AddIcon class="w-5 h-5 mr-2" />
                 New Album
@@ -42,7 +42,7 @@
 
                                 <div
                                     class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800/50 dark:to-gray-900/50 backdrop-blur-sm border border-gray-200 dark:border-gray-700 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1">
-                                    <!-- <div class="relative overflow-hidden">
+                                    <div class="relative overflow-hidden">
                                         <img :src="album.thumbnail
                                             ? `/storage/${album.song.thumbnail}`
                                             : 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400&h=400&fit=crop'"
@@ -57,7 +57,7 @@
                                                 <path d="M8 5v14l11-7z" />
                                             </svg>
                                         </button>
-                                    </div> -->
+                                    </div>
 
                                     <div class="p-4">
                                         <div class="flex items-center justify-between mb-2">

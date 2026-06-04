@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('name');
             $table->string('img');
             $table->string('license');
-            $table->foreignId('song_id');
+            $table->foreignId('song_id')->constrained('songs')->references('id');
             $table->json('artists');
             $table->timestamps();
         });

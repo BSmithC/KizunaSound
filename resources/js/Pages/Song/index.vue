@@ -7,7 +7,7 @@
                 </h1>
                 <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Discover and manage your favorite tracks</p>
             </div>
-            <Button as-child>
+            <Button class="bg-gray-100" as-child>
                 <Link href="/songs/create">
                 <AddIcon class="w-5 h-5 mr-2" />
                 New Music
@@ -153,6 +153,8 @@ import Button from '@/Components/ui/button/Button.vue';
 import Input from '@/Components/ui/input/Input.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import { Link, router } from '@inertiajs/vue3';
+import { usePlayerStore } from '@/stores/playerStore'
+import { mapStores } from 'pinia'
 
 export default {
     components: {
@@ -174,12 +176,13 @@ export default {
         }
     },
     mounted() {
-        // Pasar la lista de canciones al player global
-        if (this.$parent && this.$parent.player) {
-            this.$parent.player.setSongsList(this.songs.data || [])
+        // Pasar la lista de canciones al store global
+        if (this.songs?.data) {
+            this.playerStore.setPlaylist(this.songs.data)
         }
     },
     computed: {
+        ...mapStores(usePlayerStore),
         allSongs() {
             return this.songs.data || [];
         }
@@ -204,25 +207,8 @@ export default {
             )
         },
         async playSong(song) {
-            try {
-                const audio = this.$refs.audioPlayer;
-
-                // Si ya está reproduciendo otra canción, detenerla
-                audio.pause();
-                audio.currentTime = 0;
-
-                // Asignar la URL del backend
-                audio.src = route('songs.stream', song.id);
-
-                // Guardar la canción actual
-                this.currentPlayingSong = song;
-
-                // Cargar y reproducir
-                audio.load();
-                await audio.play();
-            } catch (error) {
-                console.error('Error al reproducir la canción:', error);
-            }
+            // Usar el store global en lugar del ref local
+            await this.playerStore.playSong(song)
         },
         formatDuration(seconds) {
             const minutes = Math.floor(seconds / 60);

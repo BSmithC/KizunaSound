@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Album;
+use App\Models\Song;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -32,7 +33,7 @@ class AlbumController extends Controller
             'filters' => $request->only([
                 'search',
                 'status',
-                ]),
+            ]),
         ]);
     }
 
@@ -41,7 +42,8 @@ class AlbumController extends Controller
      */
     public function create()
     {
-        return Inertia::render('Album/create');
+        $songs = Song::all();
+        return Inertia::render('Album/create', compact('songs'));
     }
 
     /**
@@ -50,11 +52,14 @@ class AlbumController extends Controller
     public function store(Request $request)
     {
         $validanted = $request->validate([
+            'song_id' => 'required|numeric|exists:songs,id',
             'name' => 'required|string',
             'license' => 'required|string',
         ]);
 
-        return redirect()->route('albums.index')->with('success', 'Se guardado correctamente');
+        Album::create($validanted);
+
+        return redirect()->route('albums.index')->with('toast', 'Se guardado correctamente');
     }
 
     /**

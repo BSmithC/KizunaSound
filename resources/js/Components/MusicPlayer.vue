@@ -7,9 +7,10 @@
                     <img :src="currentSong.thumbnail
                         ? `/storage/${currentSong.thumbnail}`
                         : 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400&h=400&fit=crop'"
-                        alt="" width="88" height="88" class="flex-none rounded-lg bg-slate-100 object-cover" loading="lazy" />
+                        alt="" width="88" height="88" class="flex-none rounded-lg bg-slate-100 object-cover cursor-pointer"
+                        loading="lazy" @click="openMiniPlayer" />
                     <div class="min-w-0 flex-auto space-y-1 font-semibold">
-                        <p class="text-cyan-500 dark:text-cyan-400 text-sm leading-6">
+                        <p class="text-red-500 dark:text-red-400 text-sm leading-6">
                             <abbr title="Track">Now Playing:</abbr>
                         </p>
                         <h2 class="text-slate-500 dark:text-slate-400 text-sm leading-6 truncate">
@@ -23,7 +24,7 @@
                 <div class="space-y-2">
                     <div class="relative">
                         <div class="bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden cursor-pointer" @click="seek">
-                            <div class="bg-cyan-500 dark:bg-cyan-400 h-2"
+                            <div class="bg-red-500 dark:bg-red-400 h-2"
                                 :style="{ width: progressPercentage + '%' }"
                                 role="progressbar"
                                 :aria-label="'music progress'"
@@ -34,7 +35,7 @@
                         </div>
                     </div>
                     <div class="flex justify-between text-sm leading-6 font-medium tabular-nums">
-                        <div class="text-cyan-500 dark:text-slate-100">{{ formatTime(currentTime) }}</div>
+                        <div class="text-red-500 dark:text-slate-100">{{ formatTime(currentTime) }}</div>
                         <div class="text-slate-500 dark:text-slate-400">{{ formatTime(duration) }}</div>
                     </div>
                 </div>
@@ -106,9 +107,10 @@
 </template>
 
 <script setup>
-import { inject } from 'vue'
+import { usePlayerStore } from '@/stores/playerStore'
+import { storeToRefs } from 'pinia'
 
-const player = inject('player')
+const playerStore = usePlayerStore()
 
 const {
     currentSong,
@@ -117,7 +119,10 @@ const {
     duration,
     playbackSpeed,
     progressPercentage,
-    isFavorite,
+    isFavorite
+} = storeToRefs(playerStore)
+
+const {
     formatTime,
     togglePlay,
     seek,
@@ -127,5 +132,19 @@ const {
     next,
     togglePlaybackSpeed,
     toggleFavorite
-} = player
+} = playerStore
+
+import { watch } from 'vue'
+
+watch(currentTime, (newValue) => {
+    console.log('CurrentTime changed in component:', newValue)
+})
+
+watch(duration, (newValue) => {
+    console.log('Duration changed in component:', newValue)
+})
+
+const openMiniPlayer = () => {
+    console.log('Open mini player')
+}
 </script>
