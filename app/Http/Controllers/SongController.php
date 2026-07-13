@@ -18,10 +18,6 @@ class SongController extends Controller
      */
     public function stream(Song $song): StreamedResponse
     {
-        // Cargar la canción desde la base de datos usando el ID recibido
-        // Laravel ya lo hace automáticamente con Route Model Binding.
-
-        // Verificar que el archivo exista
         if (! Storage::disk('public')->exists($song->audio)) {
             abort(404, 'Archivo de audio no encontrado.');
         }
@@ -30,7 +26,6 @@ class SongController extends Controller
         $mime = mime_content_type($path);
         $size = filesize($path);
 
-        // Soporte para reproducción por rangos (necesario para el <audio>)
         $start = 0;
         $end = $size - 1;
 
@@ -69,7 +64,6 @@ class SongController extends Controller
             ]);
         }
 
-        // Respuesta completa
         return response()->stream(function () use ($path) {
             $handle = fopen($path, 'rb');
 
@@ -118,7 +112,6 @@ class SongController extends Controller
         $genders = Gender::all();
         $artists = User::all();
 
-        // Pasamos el ID del usuario autenticado para que el formulario lo use por defecto
         $authId = Auth::id();
 
         return Inertia::render('Song/create', compact('genders', 'artists', 'authId'));
@@ -138,10 +131,8 @@ class SongController extends Controller
             'audio' => 'required|mimes:mp3,wav,ogg|max:10240',
         ]);
 
-        // Si artist_id está vacío, asignamos el Auth::id()
         $validated['artist_id'] = $validated['artist_id'] ?? Auth::id();
 
-        // Asignamos quién creó el registro (user_id)
         $validated['user_id'] = Auth::id();
 
         if ($request->hasFile('thumbnail')) {

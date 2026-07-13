@@ -12,6 +12,7 @@ export const usePlayerStore = defineStore('player', () => {
     const currentIndex = ref(-1)
     const audioElement = ref(null)
     const isFavorite = ref(false)
+    const volume = ref(0.7) // Volúmen inicial (70%)
 
     // Getters
     const progressPercentage = computed(() => {
@@ -30,6 +31,7 @@ export const usePlayerStore = defineStore('player', () => {
     const initAudio = () => {
         if (!audioElement.value) {
             audioElement.value = new Audio()
+            audioElement.value.volume = volume.value // Asignar volumen inicial
             setupAudioListeners()
         }
         return audioElement.value
@@ -62,14 +64,14 @@ export const usePlayerStore = defineStore('player', () => {
     const handleTimeUpdate = () => {
         if (audioElement.value) {
             currentTime.value = audioElement.value.currentTime
-            console.log('Time update:', currentTime.value) // Para depuración
+            console.log('Time update:', currentTime.value)
         }
     }
 
     const handleDurationChange = () => {
         if (audioElement.value && !isNaN(audioElement.value.duration)) {
             duration.value = audioElement.value.duration
-            console.log('Duration change:', duration.value) // Para depuración
+            console.log('Duration change:', duration.value)
         }
     }
 
@@ -135,6 +137,7 @@ export const usePlayerStore = defineStore('player', () => {
 
             audio.src = streamUrl
             audio.playbackRate = playbackSpeed.value
+            audio.volume = volume.value // Asegurar que mantiene el volumen actual
 
             // Cargar y reproducir
             audio.load()
@@ -249,15 +252,29 @@ export const usePlayerStore = defineStore('player', () => {
         }
     }
 
+    // --- NUEVO: Control de Sonido de la Música ---
+    const setVolume = (value) => {
+        // Convertimos explícitamente a número por si acaso llega como String desde el input HTML
+        const numericVolume = parseFloat(value)
+
+        // Si por algún motivo no es un número válido (NaN), lo dejamos en un valor por defecto seguro (ej: 0.5)
+        if (isNaN(numericVolume)) return
+
+        // Aseguramos que el volumen esté estrictamente entre 0 y 1
+        const safeVolume = Math.max(0, Math.min(1, numericVolume))
+
+        volume.value = safeVolume
+
+        if (audioElement.value) {
+            audioElement.value.volume = safeVolume
+            console.log('Volumen del elemento de audio actualizado a:', audioElement.value.volume) // Para depuración
+        }
+    }
+
     // Establecer lista de reproducción
     const setPlaylist = (songs) => {
         playlist.value = songs
         console.log('Playlist set:', songs.length, 'songs')
-
-        if (songs.length > 0 && !currentSong.value) {
-            // Opcional: no reproducir automáticamente
-            // playSong(songs[0])
-        }
     }
 
     const addToQueue = (song) => {
@@ -279,7 +296,6 @@ export const usePlayerStore = defineStore('player', () => {
 
     const checkFavoriteStatus = async (songId) => {
         try {
-            // Implementar después
             isFavorite.value = false
         } catch (error) {
             console.error('Error al verificar favorito:', error)
@@ -289,7 +305,6 @@ export const usePlayerStore = defineStore('player', () => {
     const toggleFavorite = async () => {
         if (!currentSong.value) return
         isFavorite.value = !isFavorite.value
-        // Implementar API después
     }
 
     const saveState = () => {
@@ -297,6 +312,7 @@ export const usePlayerStore = defineStore('player', () => {
             localStorage.setItem('lastPlayedSong', JSON.stringify({
                 id: currentSong.value.id,
                 currentTime: currentTime.value,
+                volume: volume.value, // Guardar también el volumen configurado
                 timestamp: Date.now()
             }))
         }
@@ -308,6 +324,9 @@ export const usePlayerStore = defineStore('player', () => {
             try {
                 const data = JSON.parse(saved)
                 console.log('Loaded saved state:', data)
+                if (data.volume !== undefined) {
+                    setVolume(data.volume)
+                }
             } catch (e) {
                 console.error('Error al cargar estado:', e)
             }
@@ -330,6 +349,7 @@ export const usePlayerStore = defineStore('player', () => {
         playlist,
         currentIndex,
         isFavorite,
+        volume,
         progressPercentage,
         formatTime,
         playSong,
@@ -342,6 +362,7 @@ export const usePlayerStore = defineStore('player', () => {
         rewind,
         seek,
         togglePlaybackSpeed,
+        setVolume,
         setPlaylist,
         addToQueue,
         clearQueue,

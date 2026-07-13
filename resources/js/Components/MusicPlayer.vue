@@ -1,13 +1,12 @@
 <template>
     <div v-if="currentSong" class="fixed bottom-0 left-0 right-0 z-50">
         <div class="w-full">
-            <div
-                class="bg-white border-slate-100 dark:bg-slate-800 dark:border-slate-500 border-b p-4 pb-6 sm:p-10 sm:pb-8 lg:p-6 xl:p-10 xl:pb-8 space-y-4 sm:space-y-2 lg:space-y-3 xl:space-y-4 items-center">
+            <div class="bg-white border-slate-100 dark:bg-slate-800 dark:border-slate-500 border-b p-4 pb-6 sm:p-10 sm:pb-8 lg:p-6 xl:p-10 xl:pb-8 space-y-4 sm:space-y-2 lg:space-y-3 xl:space-y-4 items-center">
                 <div class="flex items-center space-x-4">
                     <img :src="currentSong.thumbnail
                         ? `/storage/${currentSong.thumbnail}`
-                        : 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400&h=400&fit=crop'"
-                        alt="" width="88" height="88" class="flex-none rounded-lg bg-slate-100 object-cover cursor-pointer"
+                        : 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400&h=400&fit=crop'" alt=""
+                        width="88" height="88" class="flex-none rounded-lg bg-slate-100 object-cover cursor-pointer"
                         loading="lazy" @click="openMiniPlayer" />
                     <div class="min-w-0 flex-auto space-y-1 font-semibold">
                         <p class="text-red-500 dark:text-red-400 text-sm leading-6">
@@ -23,14 +22,11 @@
                 </div>
                 <div class="space-y-2">
                     <div class="relative">
-                        <div class="bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden cursor-pointer" @click="seek">
-                            <div class="bg-red-500 dark:bg-red-400 h-2"
-                                :style="{ width: progressPercentage + '%' }"
-                                role="progressbar"
-                                :aria-label="'music progress'"
-                                :aria-valuenow="currentTime"
-                                aria-valuemin="0"
-                                :aria-valuemax="duration">
+                        <div class="bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden cursor-pointer"
+                            @click="seek">
+                            <div class="bg-red-500 dark:bg-red-400 h-2" :style="{ width: progressPercentage + '%' }"
+                                role="progressbar" :aria-label="'music progress'" :aria-valuenow="currentTime"
+                                aria-valuemin="0" :aria-valuemax="duration">
                             </div>
                         </div>
                     </div>
@@ -40,16 +36,20 @@
                     </div>
                 </div>
             </div>
-            <div class="bg-slate-50 text-slate-500 dark:bg-slate-600 dark:text-slate-200 rounded-b-xl flex items-center">
+
+            <div class="bg-slate-50 text-slate-500 dark:bg-slate-600 dark:text-slate-200 rounded-b-xl flex items-center py-4">
                 <div class="flex-auto flex items-center justify-evenly">
-                    <button type="button" @click="toggleFavorite" :aria-label="isFavorite ? 'Remove from favorites' : 'Add to favorites'">
+                    <button type="button" @click="toggleFavorite"
+                        :aria-label="isFavorite ? 'Remove from favorites' : 'Add to favorites'">
                         <svg width="24" height="24">
-                            <path d="M7 6.931C7 5.865 7.853 5 8.905 5h6.19C16.147 5 17 5.865 17 6.931V19l-5-4-5 4V6.931Z"
-                                :fill="isFavorite ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                stroke-linejoin="round" />
+                            <path
+                                d="M7 6.931C7 5.865 7.853 5 8.905 5h6.19C16.147 5 17 5.865 17 6.931V19l-5-4-5 4V6.931Z"
+                                :fill="isFavorite ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round" />
                         </svg>
                     </button>
-                    <button type="button" class="hidden sm:block lg:hidden xl:block" @click="previous" aria-label="Previous">
+                    <button type="button" class="hidden sm:block lg:hidden xl:block" @click="previous"
+                        aria-label="Previous">
                         <svg width="24" height="24" fill="none">
                             <path d="m10 12 8-6v12l-8-6Z" fill="currentColor" stroke="currentColor" stroke-width="2"
                                 stroke-linecap="round" stroke-linejoin="round" />
@@ -67,6 +67,7 @@
                         </svg>
                     </button>
                 </div>
+
                 <button type="button"
                     class="bg-white text-slate-900 dark:bg-slate-100 dark:text-slate-700 flex-none -my-2 mx-auto w-20 h-20 rounded-full ring-1 ring-slate-900/5 shadow-md flex items-center justify-center hover:scale-105 transition-transform"
                     @click="togglePlay" :aria-label="isPlaying ? 'Pause' : 'Play'">
@@ -78,6 +79,7 @@
                         <rect x="20" y="4" width="4" height="24" rx="2" />
                     </svg>
                 </button>
+
                 <div class="flex-auto flex items-center justify-evenly">
                     <button type="button" @click="forward" aria-label="Skip 10 seconds">
                         <svg width="24" height="24" fill="none">
@@ -100,6 +102,19 @@
                         class="rounded-lg text-xs leading-6 font-semibold px-2 ring-2 ring-inset ring-slate-500 text-slate-500 dark:text-slate-100 dark:ring-0 dark:bg-slate-500">
                         {{ playbackSpeed }}x
                     </button>
+
+                    <div class="flex items-center gap-1.5 matches-speed-button">
+                        <button type="button" @click="changeVolume(volume === 0 ? 0.7 : 0)"
+                            class="text-slate-500 dark:text-slate-300 hover:text-slate-700 dark:hover:text-slate-100 transition text-sm">
+                            <span v-if="volume === 0">🔇</span>
+                            <span v-else-if="volume < 0.4">🔉</span>
+                            <span v-else>🔊</span>
+                        </button>
+
+                        <input type="range" min="0" max="1" step="0.05" :value="volume"
+                            @input="e => changeVolume(e.target.valueAsNumber)"
+                            class="w-16 sm:w-20 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-red-500 dark:accent-red-400" />
+                    </div>
                 </div>
             </div>
         </div>
@@ -107,11 +122,13 @@
 </template>
 
 <script setup>
+import { watch } from 'vue'
 import { usePlayerStore } from '@/stores/playerStore'
 import { storeToRefs } from 'pinia'
 
 const playerStore = usePlayerStore()
 
+// Propiedades reactivas desestructuradas correctamente mediante storeToRefs
 const {
     currentSong,
     isPlaying,
@@ -119,9 +136,14 @@ const {
     duration,
     playbackSpeed,
     progressPercentage,
-    isFavorite
+    isFavorite,
+    volume
 } = storeToRefs(playerStore)
 
+// Enlazamos de forma segura el método del volumen manteniendo el contexto del Store
+const changeVolume = (val) => playerStore.setVolume(val)
+
+// Métodos del reproductor desestructurados
 const {
     formatTime,
     togglePlay,
@@ -133,8 +155,6 @@ const {
     togglePlaybackSpeed,
     toggleFavorite
 } = playerStore
-
-import { watch } from 'vue'
 
 watch(currentTime, (newValue) => {
     console.log('CurrentTime changed in component:', newValue)
