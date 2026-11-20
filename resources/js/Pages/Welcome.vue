@@ -65,22 +65,22 @@ defineProps({
                     <nav v-if="canLogin" class="-mx-3 flex flex-1 justify-end gap-2">
                         <!-- Mostrar Dashboard si el usuario está autenticado -->
                         <Link v-if="$page.props.auth.user" :href="route('dashboard')"
-                            class="relative px-4 py-2 text-gray-700 font-medium transition-all duration-300 hover:text-red-600 group">
+                            class="relative px-4 py-2 text-gray-700 font-medium transition-colors duration-150 hover:text-red-600 group">
                             <span class="relative z-10">Dashboard</span>
                             <span
-                                class="absolute inset-x-0 bottom-0 h-0.5 bg-red-600 scale-x-0 group-hover:scale-x-100 transition-transform origin-left"></span>
+                                class="absolute inset-x-0 bottom-0 h-0.5 bg-red-600 opacity-0 transition-opacity duration-150 group-hover:opacity-100"></span>
                         </Link>
 
                         <!-- Mostrar Login y Register si NO está autenticado -->
                         <template v-else>
                             <Link :href="route('login')"
-                                class="relative px-4 py-2 text-gray-700 font-medium transition-all duration-300 hover:text-red-600 group">
+                                class="relative px-4 py-2 text-gray-700 font-medium transition-colors duration-150 hover:text-red-600 group">
                                 <span class="relative z-10">Login</span>
                                 <span
-                                    class="absolute inset-x-0 bottom-0 h-0.5 bg-red-600 scale-x-0 group-hover:scale-x-100 transition-transform origin-left"></span>
+                                    class="absolute inset-x-0 bottom-0 h-0.5 bg-red-600 opacity-0 transition-opacity duration-150 group-hover:opacity-100"></span>
                             </Link>
                             <Link v-if="canRegister" :href="route('register')"
-                                class="relative px-5 py-2 bg-red-600 text-white font-medium rounded-md transition-all duration-300 hover:bg-red-700 hover:shadow-lg hover:shadow-red-600/30">
+                                class="relative px-5 py-2 bg-red-600 text-white font-medium rounded-md transition-colors duration-150 hover:bg-red-700">
                                 Register
                             </Link>
                         </template>
@@ -121,7 +121,7 @@ defineProps({
                         <div class="grid gap-6 lg:grid-cols-2 lg:gap-8">
                             <!-- Mi Música Card -->
                             <div
-                                class="group relative flex flex-col items-start gap-6 overflow-hidden rounded-lg bg-white p-6 transition-all duration-300 hover:shadow-xl hover:scale-[1.02] border border-gray-200 hover:border-red-600/50 cursor-pointer">
+                                class="group relative flex flex-col items-start gap-6 overflow-hidden rounded-lg bg-white p-6 transition-colors duration-150 hover:shadow-xl border border-gray-200 hover:border-red-600/50 cursor-pointer">
                                 <div class="flex items-center gap-4 w-full">
                                     <div
                                         class="flex size-14 shrink-0 items-center justify-center rounded-full bg-red-600/10 group-hover:bg-red-600/20 transition-colors">
@@ -153,7 +153,7 @@ defineProps({
 
                             <!-- Mis Playlists Card -->
                             <div
-                                class="group relative flex flex-col items-start gap-6 overflow-hidden rounded-lg bg-white p-6 transition-all duration-300 hover:shadow-xl hover:scale-[1.02] border border-gray-200 hover:border-red-600/50 cursor-pointer">
+                                class="group relative flex flex-col items-start gap-6 overflow-hidden rounded-lg bg-white p-6 transition-colors duration-150 hover:shadow-xl border border-gray-200 hover:border-red-600/50 cursor-pointer">
                                 <div class="flex items-center gap-4 w-full">
                                     <div
                                         class="flex size-14 shrink-0 items-center justify-center rounded-full bg-red-600/10 group-hover:bg-red-600/20 transition-colors">
@@ -184,7 +184,7 @@ defineProps({
 
                             <!-- Actividad Reciente Card -->
                             <div
-                                class="group relative flex flex-col items-start gap-6 overflow-hidden rounded-lg bg-white p-6 transition-all duration-300 hover:shadow-xl hover:scale-[1.02] border border-gray-200 hover:border-red-600/50 cursor-pointer">
+                                class="group relative flex flex-col items-start gap-6 overflow-hidden rounded-lg bg-white p-6 transition-colors duration-150 hover:shadow-xl border border-gray-200 hover:border-red-600/50 cursor-pointer">
                                 <div class="flex items-center gap-4 w-full">
                                     <div
                                         class="flex size-14 shrink-0 items-center justify-center rounded-full bg-red-600/10 group-hover:bg-red-600/20 transition-colors">
@@ -214,7 +214,7 @@ defineProps({
 
                             <!-- Recomendaciones Card -->
                             <div
-                                class="group relative flex flex-col items-start gap-6 overflow-hidden rounded-lg bg-white p-6 transition-all duration-300 hover:shadow-xl hover:scale-[1.02] border border-gray-200 hover:border-red-600/50 cursor-pointer">
+                                class="group relative flex flex-col items-start gap-6 overflow-hidden rounded-lg bg-white p-6 transition-colors duration-150 hover:shadow-xl border border-gray-200 hover:border-red-600/50 cursor-pointer">
                                 <div class="flex items-center gap-4 w-full">
                                     <div
                                         class="flex size-14 shrink-0 items-center justify-center rounded-full bg-red-600/10 group-hover:bg-red-600/20 transition-colors">
@@ -296,11 +296,11 @@ defineProps({
                             </p>
                             <div class="flex justify-center gap-4 mt-8">
                                 <Link :href="route('register')"
-                                    class="px-6 py-3 bg-red-600 text-white font-medium rounded-md transition-all duration-300 hover:bg-red-700 hover:shadow-lg hover:shadow-red-600/30">
+                                    class="px-6 py-3 bg-red-600 text-white font-medium rounded-md transition-colors duration-150 hover:bg-red-700">
                                     Comienza ahora
                                 </Link>
                                 <Link :href="route('login')"
-                                    class="px-6 py-3 border border-red-600 text-red-600 font-medium rounded-md transition-all duration-300 hover:bg-red-600 hover:text-white">
+                                    class="px-6 py-3 border border-red-600 text-red-600 font-medium rounded-md transition-colors duration-150 hover:bg-red-600 hover:text-white">
                                     Iniciar sesión
                                 </Link>
                             </div>
@@ -310,7 +310,7 @@ defineProps({
                         <div class="grid gap-6 lg:grid-cols-2 lg:gap-8">
                             <!-- Music Discovery Card -->
                             <div
-                                class="group relative flex flex-col items-start gap-6 overflow-hidden rounded-lg bg-white p-6 transition-all duration-300 hover:shadow-xl hover:scale-[1.02] border border-gray-200 hover:border-red-600/50 cursor-pointer">
+                                class="group relative flex flex-col items-start gap-6 overflow-hidden rounded-lg bg-white p-6 transition-colors duration-150 hover:shadow-xl border border-gray-200 hover:border-red-600/50 cursor-pointer">
                                 <div class="absolute top-0 right-0 w-32 h-32 opacity-5">
                                     <div class="absolute top-0 right-0 w-16 h-16 border-t-2 border-r-2 border-red-600">
                                     </div>
@@ -355,7 +355,7 @@ defineProps({
 
                             <!-- Community Card -->
                             <div
-                                class="group relative flex flex-col items-start gap-6 overflow-hidden rounded-lg bg-white p-6 transition-all duration-300 hover:shadow-xl hover:scale-[1.02] border border-gray-200 hover:border-red-600/50 cursor-pointer">
+                                class="group relative flex flex-col items-start gap-6 overflow-hidden rounded-lg bg-white p-6 transition-colors duration-150 hover:shadow-xl border border-gray-200 hover:border-red-600/50 cursor-pointer">
                                 <div class="absolute top-0 right-0 w-32 h-32 opacity-5">
                                     <div class="absolute top-0 right-0 w-16 h-16 border-t-2 border-r-2 border-red-600">
                                     </div>
@@ -401,7 +401,7 @@ defineProps({
 
                             <!-- Playlists Card -->
                             <div
-                                class="group relative flex flex-col items-start gap-6 overflow-hidden rounded-lg bg-white p-6 transition-all duration-300 hover:shadow-xl hover:scale-[1.02] border border-gray-200 hover:border-red-600/50 cursor-pointer">
+                                class="group relative flex flex-col items-start gap-6 overflow-hidden rounded-lg bg-white p-6 transition-colors duration-150 hover:shadow-xl border border-gray-200 hover:border-red-600/50 cursor-pointer">
                                 <div class="absolute top-0 right-0 w-32 h-32 opacity-5">
                                     <div class="absolute top-0 right-0 w-16 h-16 border-t-2 border-r-2 border-red-600">
                                     </div>
@@ -445,7 +445,7 @@ defineProps({
 
                             <!-- Events Card -->
                             <div
-                                class="group relative flex flex-col items-start gap-6 overflow-hidden rounded-lg bg-white p-6 transition-all duration-300 hover:shadow-xl hover:scale-[1.02] border border-gray-200 hover:border-red-600/50 cursor-pointer">
+                                class="group relative flex flex-col items-start gap-6 overflow-hidden rounded-lg bg-white p-6 transition-colors duration-150 hover:shadow-xl border border-gray-200 hover:border-red-600/50 cursor-pointer">
                                 <div class="absolute top-0 right-0 w-32 h-32 opacity-5">
                                     <div class="absolute top-0 right-0 w-16 h-16 border-t-2 border-r-2 border-red-600">
                                     </div>
@@ -509,7 +509,7 @@ defineProps({
                                         japonesa tiene un nuevo hogar.</p>
                                 </div>
                                 <Link :href="route('register')"
-                                    class="px-4 py-2 border border-red-600 text-red-600 rounded-md text-sm hover:bg-red-600 hover:text-white transition-all duration-300">
+                                    class="px-4 py-2 border border-red-600 text-red-600 rounded-md text-sm hover:bg-red-600 hover:text-white transition-colors duration-150">
                                     Explorar →
                                 </Link>
                             </div>

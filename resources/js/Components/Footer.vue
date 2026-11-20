@@ -1,16 +1,11 @@
 <template>
-    <footer
-        class="bg-background bg-gray-200 dark:bg-gray-800 border-t bo text-foreground-700 ">
-        <div class="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col sm:flex-row justify-between items-center">
-
-            <div class="text-sm text-gray-800 dark:text-gray-200">
-                &copy; {{ new Date().getFullYear() }} KizunaSound. Copyright.
-            </div>
-
-            <div class="mt-2 sm:mt-0 flex gap-4">
-
-                <a href="https://bjdevstudio.my.canva.site/" class="hover:text-primary dark:hover:text-primary transition-colors text-sm text-gray-800 dark:text-gray-200">Help</a>
-            </div>
+    <footer class="border-t border-warm/10 bg-sumi/80">
+        <div class="mx-auto flex max-w-[1500px] flex-col items-center justify-between gap-2 px-4 py-6 text-center sm:flex-row sm:px-6 sm:text-left lg:px-10">
+            <p class="text-xs text-warm/40">
+                &copy; {{ new Date().getFullYear() }} KizunaSound · 音楽で繋がる
+            </p>
+            <a href="https://bjdevstudio.my.canva.site/"
+                class="text-xs text-warm/45 transition-colors hover:text-[var(--ks-accent)]">Ayuda</a>
         </div>
     </footer>
 </template>

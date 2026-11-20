@@ -167,12 +167,12 @@ const handleMouseEnter = (event, recipeId) => {
                             @mouseenter="handleMouseEnter($event, recipe.id)" @mouseleave="openRecipe = null">
 
                             <Card
-                                class="h-full border border-gray-100 bg-white rounded-xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden cursor-pointer"
+                                class="h-full border border-gray-100 bg-white rounded-xl shadow-sm hover:shadow-xl transition-colors duration-150 overflow-hidden cursor-pointer"
                                 @click="selectFromTable(recipe)">
 
                                 <CardHeader class="p-0 relative h-48 overflow-hidden">
                                     <img :src="recipe.img ? `/storage/${recipe.img}` : 'https://static.spotapps.co/website_images/ab_websites/174603_website_v1/menu.jpg'"
-                                        class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                        class="w-full h-full object-cover"
                                         alt="Recipe Image" />
 
                                     <div
@@ -181,7 +181,7 @@ const handleMouseEnter = (event, recipeId) => {
                                     </div>
 
                                     <div
-                                        class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300">
+                                        class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-150">
                                     </div>
                                 </CardHeader>
 

@@ -1,36 +1,129 @@
+/* ============================================================
+   KizunaSound — sistema de color (Sumi / Washi / Shu)
+   Paleta japonesa moderna. Una sola fuente de verdad.
+   ============================================================ */
+
 :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Colores de marca (valores fijos) */
+    --ks-sumi: #171717;        /* Negro sumi */
+    --ks-charcoal: #292d32;    /* Gris carbón */
+    --ks-shu: #b52b32;         /* Rojo japonés / shu */
+    --ks-washi: #d9cdb8;       /* Beige washi */
+    --ks-moss: #778477;        /* Verde musgo */
+    --ks-warm-white: #f3f0e9;  /* Blanco cálido */
+
+    /*
+     * RGB de la paleta para las utilidades de Tailwind. Permite que
+     * text-warm/55, bg-sumi/95, etc. cambien con el tema sin reescribir
+     * cientos de clases. El espacio de color es "R G B" (sin comas).
+     */
+    --ks-sumi-rgb: 23 23 23;
+    --ks-charcoal-rgb: 41 45 50;
+    --ks-washi-rgb: 217 205 184;
+    --ks-warm-rgb: 243 240 233;
+
+    /* Tokens semánticos: cambian con .dark / html:not(.dark) */
+    --ks-ink: var(--ks-warm-white);
+    --ks-paper: var(--ks-sumi);
+    --ks-panel: var(--ks-charcoal);
+    --ks-muted: rgb(var(--ks-washi-rgb) / 0.62);
+    --ks-faint: rgb(var(--ks-washi-rgb) / 0.42);
+    --ks-line: rgb(var(--ks-warm-rgb) / 0.08);
+    --ks-line-strong: rgb(var(--ks-warm-rgb) / 0.16);
+    --ks-on-accent: var(--ks-warm-white);
+
+    /* Acento (legacy: conservamos los nombres por compatibilidad) */
+    --ks-accent: var(--ks-shu);
+    --ks-accent-rgb: 181, 43, 50;
+    --ks-surface: var(--ks-sumi);
+    --ks-surface-2: var(--ks-charcoal);
+
+    /* Tipografía */
+    --font-sans: 'Inter', 'Noto Sans JP', ui-sans-serif, system-ui, sans-serif;
+    --font-heading: 'Noto Serif JP', 'Inter', Georgia, serif;
+
+    /* Tema oscuro por defecto (Sumi) */
+    --background: 0 0% 9%;
+    --foreground: 42 29% 93%;
+
+    --card: 213 10% 18%;
+    --card-foreground: 42 29% 93%;
+
+    --popover: 213 10% 18%;
+    --popover-foreground: 42 29% 93%;
+
+    --primary: 357 62% 44%;
+    --primary-foreground: 42 29% 93%;
+
+    --secondary: 120 5% 49%;
+    --secondary-foreground: 42 29% 93%;
+
+    --muted: 213 10% 18%;
+    --muted-foreground: 38 30% 79%;
+
+    --accent: 357 62% 44%;
+    --accent-foreground: 42 29% 93%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 42 29% 93%;
+
+    --border: 213 10% 24%;
+    --input: 213 10% 24%;
+    --ring: 357 62% 44%;
+
+    --radius: 0.9rem;
+}
+
+/* El toggle conserva la API: .dark = Sumi, sin .dark = Washi (tema claro). */
+html:not(.dark) {
+    /* Utilidades Tailwind: el texto pasa a tinta y los fondos a papel. */
+    --ks-sumi-rgb: 243 240 233;
+    --ks-charcoal-rgb: 232 227 215;
+    --ks-washi-rgb: 92 82 68;
+    --ks-warm-rgb: 23 23 23;
+
+    --ks-ink: #171717;
+    --ks-paper: #f3f0e9;
+    --ks-panel: #ffffff;
+    --ks-muted: rgb(23 23 23 / 0.62);
+    --ks-faint: rgb(23 23 23 / 0.42);
+    --ks-line: rgb(23 23 23 / 0.1);
+    --ks-line-strong: rgb(23 23 23 / 0.18);
+    --ks-on-accent: var(--ks-warm-white);
+
+    --background: 42 29% 93%;
+    --foreground: 0 0% 9%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 0 0% 9%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 0 0% 9%;
 
-    --primary: 221 83% 53%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 357 62% 44%;
+    --primary-foreground: 42 29% 93%;
 
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 38 30% 79%;
+    --secondary-foreground: 0 0% 9%;
 
-    --muted: 210 40% 96%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 38 30% 79%;
+    --muted-foreground: 0 0% 20%;
 
-    --accent: 210 40% 96%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 357 62% 44%;
+    --accent-foreground: 42 29% 93%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 42 29% 93%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: var(--primary);
-
-    --radius: 0.75rem;
+    --border: 38 20% 72%;
+    --input: 38 20% 72%;
+    --ring: 357 62% 44%;
 }
 
 .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    color-scheme: dark;
+}
+
+html:not(.dark) {
+    color-scheme: light;
 }

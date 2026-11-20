@@ -1,221 +1,131 @@
 <template>
     <AuthenticatedLayout>
-        <template #header>
-            <div class="flex-1">
-                <h1 class="text-xl font-bold leading-tight text-gray-800 dark:text-gray-200">
-                    Music Library
-                </h1>
-                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Discover and manage your favorite tracks</p>
-            </div>
-            <Button class="bg-gray-100" as-child>
-                <Link href="/songs/create">
-                <AddIcon class="w-5 h-5 mr-2" />
-                New Music
+        <Head title="Canciones" />
+
+        <div class="ks-page">
+            <SectionHeading eyebrow="Catálogo" title="Canciones"
+                subtitle="Busca, filtra y administra las pistas subidas a la plataforma.">
+                <Link :href="route('songs.create')"
+                    class="ks-btn ks-btn-primary">
+                    Nueva canción
                 </Link>
-            </Button>
-        </template>
+            </SectionHeading>
 
-        <template #default>
-
-            <div class="mt-4 mx-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div class="w-full sm:max-w-sm">
-                    <Input v-model="search" placeholder="Filter Gender..." />
-                </div>
-            </div>
-            <div class="mx-auto max-w-7xl py-8 px-4 sm:px-6 lg:px-8">
-                <div class="space-y-12">
-                    <div class="relative">
-                        <div class="flex items-center justify-between mb-6">
-                            <div>
-                                <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-100">Recent Music</h2>
-                                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Fresh tracks just for you</p>
-                            </div>
-                            <div
-                                class="h-px flex-1 mx-4 bg-gradient-to-r from-transparent via-gray-300 to-transparent dark:via-gray-700">
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                            <div v-for="song in songs.data" :key="song.id" class="group">
-                                <div
-                                    class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800/50 dark:to-gray-900/50 backdrop-blur-sm border border-gray-200 dark:border-gray-700 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1">
-                                    <div class="relative overflow-hidden">
-                                        <img :src="song.thumbnail
-                                            ? `/storage/${song.thumbnail}`
-                                            : 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400&h=400&fit=crop'"
-                                            alt="Thumbnail"
-                                            class="w-full h-64 object-cover transition-transform duration-500 group-hover:scale-110">
-                                        <div
-                                            class="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                        </div>
-                                        <Button @click="playSong(song)" type="button"
-                                            class="absolute bottom-4 right-4 p-3 bg-white rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 hover:scale-110">
-                                            <svg class="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 24 24">
-                                                <path d="M8 5v14l11-7z" />
-                                            </svg>
-                                        </Button>
-                                    </div>
-                                    <div class="p-4">
-                                        <div class="flex items-center justify-between mb-2">
-                                            <span
-                                                class="text-xs font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">{{
-                                                    song.name }}</span>
-                                            <span class="text-xs text-gray-500 dark:text-gray-400"></span>
-                                        </div>
-                                        <h3
-                                            class="text-lg font-bold text-gray-800 dark:text-gray-100 mb-1 line-clamp-1">
-                                            {{ song.artist.name }}</h3>
-                                        <p class="text-sm text-gray-600 dark:text-gray-300 line-clamp-1">{{
-                                            song.gender.name }}</p>
-
-                                        <div
-                                            class="flex items-center justify-between mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                                            <div class="flex items-center space-x-1">
-                                                <span class="text-xs text-gray-800 dark:text-gray-200">--,--</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <audio ref="audioPlayer" preload="metadata"></audio>
-                        </div>
+            <div class="ks-card mb-6 p-4">
+                <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    <input v-model="filtersForm.search" type="search" placeholder="Buscar por título, letra o artista..."
+                        class="w-full rounded-lg border border-warm/10 bg-warm/5 px-3 py-2.5 text-sm text-warm placeholder-slate-500 outline-none focus:border-[var(--ks-accent)]"
+                        @keyup.enter="applyFilters" />
+                    <select v-model="filtersForm.gender_id"
+                        class="w-full rounded-lg border border-warm/10 bg-sumi px-3 py-2.5 text-sm text-warm outline-none focus:border-[var(--ks-accent)]">
+                        <option value="">Todos los géneros</option>
+                        <option v-for="gender in genders" :key="gender.id" :value="gender.id">{{ gender.name }}</option>
+                    </select>
+                    <select v-model="filtersForm.mood"
+                        class="w-full rounded-lg border border-warm/10 bg-sumi px-3 py-2.5 text-sm text-warm outline-none focus:border-[var(--ks-accent)]">
+                        <option value="">Todos los moods</option>
+                        <option v-for="mood in moodOptions" :key="mood" :value="mood">{{ mood }}</option>
+                    </select>
+                    <div class="flex gap-2">
+                        <button type="button"
+                            class="ks-btn ks-btn-primary flex-1 transition hover:brightness-110"
+                            @click="applyFilters">Filtrar</button>
+                        <button type="button"
+                            class="rounded-full border border-warm/15 px-4 py-2.5 text-sm text-warm/75 transition hover:text-warm"
+                            @click="clearFilters">Limpiar</button>
                     </div>
                 </div>
             </div>
-            <div class="mx-auto max-w-7xl py-8 px-4 sm:px-6 lg:px-8">
-                <div class="space-y-12">
-                    <div class="relative">
-                        <div class="flex items-center justify-between mb-6">
-                            <div>
-                                <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-100">Popular Music</h2>
-                                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Fresh tracks just for you</p>
-                            </div>
-                            <div
-                                class="h-px flex-1 mx-4 bg-gradient-to-r from-transparent via-gray-300 to-transparent dark:via-gray-700">
-                            </div>
-                        </div>
 
-                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                            <div v-for="song in songs.data" :key="song.id" class="group">
-                                <div
-                                    class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800/50 dark:to-gray-900/50 backdrop-blur-sm border border-gray-200 dark:border-gray-700 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1">
-                                    <div class="relative overflow-hidden">
-                                        <img :src="song.thumbnail
-                                            ? `/storage/${song.thumbnail}`
-                                            : 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400&h=400&fit=crop'"
-                                            alt="Thumbnail"
-                                            class="w-full h-64 object-cover transition-transform duration-500 group-hover:scale-110">
-                                        <div
-                                            class="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                        </div>
-                                        <Button @click="playSong(song)" type="button"
-                                            class="absolute bottom-4 right-4 p-3 bg-white rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 hover:scale-110">
-                                            <svg class="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 24 24">
-                                                <path d="M8 5v14l11-7z" />
-                                            </svg>
-                                        </Button>
-                                    </div>
-                                    <div class="p-4">
-                                        <div class="flex items-center justify-between mb-2">
-                                            <span
-                                                class="text-xs font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">{{
-                                                    song.name }}</span>
-                                            <span class="text-xs text-gray-500 dark:text-gray-400"></span>
-                                        </div>
-                                        <h3
-                                            class="text-lg font-bold text-gray-800 dark:text-gray-100 mb-1 line-clamp-1">
-                                            {{ song.artist.name }}</h3>
-                                        <p class="text-sm text-gray-600 dark:text-gray-300 line-clamp-1">{{
-                                            song.gender.name }}</p>
-
-                                        <div
-                                            class="flex items-center justify-between mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                                            <div class="flex items-center space-x-1">
-                                                <span class="text-xs text-gray-800 dark:text-gray-200">--,--</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+            <template v-if="songs.data?.length">
+                <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                    <div v-for="song in songs.data" :key="song.id" class="min-w-0">
+                        <SongCard :song="song" :queue="songs.data" />
+                        <div class="mt-2 flex items-center justify-between gap-2 px-1">
+                            <span class="truncate text-[11px] text-warm/45">{{ formatDuration(song.duration_seconds) }}</span>
+                            <div class="flex flex-none items-center gap-2">
+                                <Link :href="route('songs.edit', song.id)" class="text-xs text-warm/55 hover:text-warm">Editar</Link>
+                                <button type="button" class="text-xs text-rose-400 hover:text-rose-300" @click="remove(song)">Eliminar</button>
                             </div>
-                            <audio ref="audioPlayer" preload="metadata"></audio>
                         </div>
                     </div>
                 </div>
-            </div>
-        </template>
+
+                <div class="mt-8">
+                    <SectionHeading title="Vista de lista" subtitle="Reproduce cualquier pista con el reproductor global.">
+                        <TrackList :songs="songs.data" />
+                    </SectionHeading>
+                </div>
+
+                <div class="mt-6 flex items-center justify-between gap-4">
+                    <span class="text-xs text-warm/45">
+                        Mostrando {{ songs.from ?? 0 }}–{{ songs.to ?? 0 }} de {{ songs.total ?? 0 }}
+                    </span>
+                    <div class="flex gap-2">
+                        <Link v-if="songs.prev_page_url" :href="songs.prev_page_url"
+                            class="rounded-full border border-warm/15 px-4 py-2 text-sm text-warm/75 hover:text-warm">Anterior</Link>
+                        <Link v-if="songs.next_page_url" :href="songs.next_page_url"
+                            class="rounded-full border border-warm/15 px-4 py-2 text-sm text-warm/75 hover:text-warm">Siguiente</Link>
+                    </div>
+                </div>
+            </template>
+
+            <EmptyState v-else title="No hay canciones" description="Ajusta los filtros o sube la primera pista al catálogo.">
+                <template #action>
+                    <Link :href="route('songs.create')"
+                        class="ks-btn ks-btn-primary">Subir canción</Link>
+                </template>
+            </EmptyState>
+        </div>
     </AuthenticatedLayout>
 </template>
 
-<script>
-import AddIcon from '@/Components/Icons/AddIcon.vue';
-import MagnifyingGlassIcon from '@/Components/Icons/MagnifyingGlassIcon.vue';
-import Button from '@/Components/ui/button/Button.vue';
-import Input from '@/Components/ui/input/Input.vue';
+<script setup>
+import { reactive } from 'vue'
+import { Head, Link, router, useForm } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
-import { Link, router } from '@inertiajs/vue3';
-import { usePlayerStore } from '@/stores/playerStore'
-import { mapStores } from 'pinia'
+import SectionHeading from '@/Components/Music/SectionHeading.vue'
+import SongCard from '@/Components/Music/SongCard.vue'
+import TrackList from '@/Components/Music/TrackList.vue'
+import EmptyState from '@/Components/Music/EmptyState.vue'
+import { formatDuration } from '@/helpers/media'
 
-export default {
-    components: {
-        AuthenticatedLayout,
-        MagnifyingGlassIcon,
-        Input,
-        Button,
-        AddIcon,
-        Link
-    },
-    props: {
-        songs: Object,
-        filters: Object,
-    },
-    data() {
-        return {
-            search: this.filters?.search || '',
-            currentPlayingSong: null,
-        }
-    },
-    mounted() {
-        // Pasar la lista de canciones al store global
-        if (this.songs?.data) {
-            this.playerStore.setPlaylist(this.songs.data)
-        }
-    },
-    computed: {
-        ...mapStores(usePlayerStore),
-        allSongs() {
-            return this.songs.data || [];
-        }
-    },
-    watch: {
-        search() {
-            this.applyFilters();
-        }
-    },
-    methods: {
-        applyFilters() {
-            router.get(
-                '/songs',
-                {
-                    search: this.search
-                },
-                {
-                    preserveState: true,
-                    replace: true,
-                    preserveScroll: true,
-                }
-            )
-        },
-        async playSong(song) {
-            // Usar el store global en lugar del ref local
-            await this.playerStore.playSong(song)
-        },
-        formatDuration(seconds) {
-            const minutes = Math.floor(seconds / 60);
-            const remainingSeconds = seconds % 60;
-            return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-        }
-    },
+const props = defineProps({
+    songs: { type: Object, required: true },
+    filters: { type: Object, default: () => ({}) },
+    genders: { type: Array, default: () => [] },
+    moodOptions: { type: Array, default: () => [] },
+})
 
+const filtersForm = reactive({
+    search: props.filters.search ?? '',
+    gender_id: props.filters.gender_id ?? '',
+    mood: props.filters.mood ?? '',
+})
+
+const deleteForm = useForm({})
+
+const applyFilters = () => {
+    router.get(route('songs.index'), {
+        search: filtersForm.search,
+        gender_id: filtersForm.gender_id,
+        mood: filtersForm.mood,
+    }, {
+        preserveState: true,
+        preserveScroll: true,
+        replace: true,
+    })
+}
+
+const clearFilters = () => {
+    filtersForm.search = ''
+    filtersForm.gender_id = ''
+    filtersForm.mood = ''
+    applyFilters()
+}
+
+const remove = (song) => {
+    if (! window.confirm(`¿Eliminar la canción «${song.name}»?`)) return
+    deleteForm.delete(route('songs.destroy', song.id), { preserveScroll: true })
 }
 </script>

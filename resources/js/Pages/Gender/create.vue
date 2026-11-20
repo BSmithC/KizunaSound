@@ -1,85 +1,59 @@
 <template>
     <AuthenticatedLayout>
-        <template #header>
-            <div>
-                <h1 class="text-xl font-semibold text-gray-800 dark:text-gray-200 leading-tight">
-                    Create Gender
-                </h1>
-            </div>
-        </template>
+        <Head title="Nuevo género" />
 
-        <div class="p-6 max-w-4xl mx-auto">
-            <form @submit.prevent="submit">
-                <div class="rounded-xl border-foregroundbg-background p-6 space-y-6">
+        <div class="ks-page">
+            <SectionHeading class="mb-8" eyebrow="Taxonomía" title="Nuevo género"
+                subtitle="El slug se genera automáticamente a partir del nombre." />
 
-                    <!-- Nombre -->
-                    <div class="grid grid-cols-1 gap-4">
-                        <div>
-                            <Label for="name">Name<span class="text-red-500"> *</span></Label>
-                            <Input id="name" v-model="form.name" type="text" placeholder="Hip Hop" />
-                        </div>
+            <form class="ks-card max-w-2xl space-y-5 p-6" @submit.prevent="submit">
+                <div>
+                    <label class="form-label" for="name">Nombre *</label>
+                    <input id="name" v-model="form.name" type="text" class="form-input" placeholder="Ej. Synthwave" />
+                    <p v-if="form.errors.name" class="form-error">{{ form.errors.name }}</p>
+                </div>
 
-                        <div>
-                            <Label for="description">Descriptión<span class="text-red-500"> *</span></Label>
-                            <Textarea id="description" v-model="form.description" type="text"
-                                placeholder="Detalles de la genero..." />
-                        </div>
-                    </div>
+                <div>
+                    <label class="form-label" for="description">Descripción</label>
+                    <textarea id="description" v-model="form.description" rows="4" class="form-input"
+                        placeholder="Describe las características del género..."></textarea>
+                    <p v-if="form.errors.description" class="form-error">{{ form.errors.description }}</p>
+                </div>
 
+                <label class="flex items-center gap-3 text-sm text-warm/75">
+                    <input v-model="form.active" type="checkbox" class="h-4 w-4 accent-[var(--ks-accent)]" />
+                    Género activo
+                </label>
 
-
-
-
-                    <!-- Acciones -->
-                    <div class="flex justify-end gap-3">
-                        <Button variant="outline" as-child>
-                            <Link href="/genders">
-                            Cancelar
-                            </Link>
-                        </Button>
-
-                        <Button type="submit" :disabled="form.processing">
-                            Guardar
-                        </Button>
-                    </div>
-
+                <div class="flex flex-wrap gap-3 border-t border-warm/10 pt-5">
+                    <button type="submit" :disabled="form.processing"
+                        class="ks-btn ks-btn-primary disabled:opacity-50">
+                        Guardar género
+                    </button>
+                    <Link :href="route('genders.index')"
+                        class="ks-btn ks-btn-ghost">Cancelar</Link>
                 </div>
             </form>
         </div>
     </AuthenticatedLayout>
 </template>
 
-<script>
-import Button from '@/Components/ui/button/Button.vue';
-import Input from '@/Components/ui/input/Input.vue';
-import Label from '@/Components/ui/label/Label.vue';
-import InputError from '@/Components/InputError.vue'
+<script setup>
+import { Head, Link, useForm } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
-import { Link, useForm } from '@inertiajs/vue3';
-import Textarea from '@/Components/ui/textarea/Textarea.vue';
+import SectionHeading from '@/Components/Music/SectionHeading.vue'
 
-export default {
-    components: {
-        AuthenticatedLayout,
-        Input,
-        Button,
-        Label,
-        Link,
-        InputError,
-        Textarea,
-    },
-    data() {
-        return {
-            form: useForm({
-                name: '',
-                description: '',
-            })
-        }
-    },
-    methods: {
-        submit() {
-            this.form.post('/genders');
-        }
-    }
-}
+const form = useForm({
+    name: '',
+    description: '',
+    active: true,
+})
+
+const submit = () => form.post(route('genders.store'))
 </script>
+
+<style scoped>
+.form-label { @apply mb-2 block text-sm font-medium text-warm/75; }
+.form-input { @apply w-full rounded-lg border border-warm/10 bg-warm/5 px-3 py-2.5 text-sm text-warm placeholder-slate-500 outline-none transition focus:border-[var(--ks-accent)]; }
+.form-error { @apply mt-1 text-xs text-rose-400; }
+</style>

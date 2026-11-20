@@ -140,7 +140,7 @@ watch(manualSearch, () => {
 
                     </div>
 
-                    <p v-if="error" class="text-sm text-destructive font-semibold animate-pulse">
+                    <p v-if="error" class="text-sm text-destructive font-semibold">
                         {{ error }}
                     </p>
 

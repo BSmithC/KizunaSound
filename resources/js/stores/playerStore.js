@@ -1,5 +1,17 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { computed, onScopeDispose, ref } from 'vue'
+import { formatDuration } from '@/helpers/media'
+import {
+    recordHistory as apiRecordHistory,
+    toggleFavorite as apiToggleFavorite,
+} from '@/helpers/libraryApi'
+
+const STORAGE_KEY = 'ks_player_state'
+const FAVORITES_KEY = 'ks_favorite_songs'
+const LEGACY_KEY = 'lastPlayedSong'
+const SPEEDS = [1, 1.25, 1.5, 2]
+const VALID_REPEAT = ['off', 'all', 'one']
+const SAVE_INTERVAL_MS = 5000
 
 export const usePlayerStore = defineStore('player', () => {
     // Estado
@@ -7,350 +19,777 @@ export const usePlayerStore = defineStore('player', () => {
     const isPlaying = ref(false)
     const currentTime = ref(0)
     const duration = ref(0)
+    const volume = ref(0.7)
+    const previousVolume = ref(0.7)
     const playbackSpeed = ref(1)
+    const isFavorite = ref(false)
     const playlist = ref([])
     const currentIndex = ref(-1)
+    const shuffle = ref(false)
+    const repeat = ref('off')
+    const loading = ref(false)
+    const error = ref('')
+    const warning = ref('')
     const audioElement = ref(null)
-    const isFavorite = ref(false)
-    const volume = ref(0.7) // Volúmen inicial (70%)
 
-    // Getters
+    const favoriteIds = ref(new Set())
+    const playedIndices = ref([])
+
+    let listenersAttached = false
+    let saveTimer = null
+    let historyRecordedFor = null
+
+    // Getters y utilidades
+    const formatTime = (seconds) => formatDuration(seconds)
+
     const progressPercentage = computed(() => {
-        if (duration.value === 0) return 0
-        return (currentTime.value / duration.value) * 100
+        if (!Number.isFinite(duration.value) || duration.value <= 0) return 0
+        return Math.min(100, Math.max(0, (currentTime.value / duration.value) * 100))
     })
 
-    const formatTime = (seconds) => {
-        if (isNaN(seconds) || !isFinite(seconds)) return '0:00'
-        const mins = Math.floor(seconds / 60)
-        const secs = Math.floor(seconds % 60)
-        return `${mins}:${secs.toString().padStart(2, '0')}`
+    const formattedCurrentTime = computed(() => formatTime(currentTime.value))
+    const formattedDuration = computed(() => formatTime(duration.value))
+    const isMuted = computed(() => volume.value === 0)
+
+    function setError(message) {
+        error.value = message || 'Ha ocurrido un error inesperado en el reproductor.'
     }
 
-    // Inicializar elemento de audio
-    const initAudio = () => {
-        if (!audioElement.value) {
-            audioElement.value = new Audio()
-            audioElement.value.volume = volume.value // Asignar volumen inicial
-            setupAudioListeners()
+    function clearError() {
+        error.value = ''
+    }
+
+    function setWarning(message) {
+        warning.value = message || ''
+    }
+
+    function clearWarning() {
+        warning.value = ''
+    }
+
+    function readLocal(key) {
+        try {
+            return typeof localStorage === 'undefined' ? null : localStorage.getItem(key)
+        } catch {
+            setWarning('No se pudo acceder al almacenamiento local del navegador.')
+            return null
         }
+    }
+
+    function writeLocal(key, value) {
+        try {
+            if (typeof localStorage !== 'undefined') localStorage.setItem(key, value)
+        } catch {
+            setWarning('No se pudo guardar la configuración del reproductor.')
+        }
+    }
+
+    function normalizeIds(value) {
+        const source = Array.isArray(value)
+            ? value
+            : value && typeof value === 'object'
+                ? Object.keys(value)
+                : []
+
+        return source
+            .map((id) => Number(id))
+            .filter((id) => Number.isFinite(id) && id > 0)
+    }
+
+    function syncFavorite() {
+        isFavorite.value = Boolean(
+            currentSong.value && favoriteIds.value.has(Number(currentSong.value.id)),
+        )
+    }
+
+    function applyFavorite(songId, value) {
+        const next = new Set(favoriteIds.value)
+        if (value) next.add(Number(songId))
+        else next.delete(Number(songId))
+        favoriteIds.value = next
+        syncFavorite()
+    }
+
+    function setFavorites(ids) {
+        favoriteIds.value = new Set(normalizeIds(ids))
+        syncFavorite()
+    }
+
+    function availableNextIndices() {
+        return playlist.value
+            .map((_, index) => index)
+            .filter((index) => index !== currentIndex.value && !playedIndices.value.includes(index))
+    }
+
+    function randomOtherIndex() {
+        const length = playlist.value.length
+        if (length <= 1) return currentIndex.value >= 0 ? currentIndex.value : 0
+
+        let index = currentIndex.value
+        while (index === currentIndex.value) {
+            index = Math.floor(Math.random() * length)
+        }
+        return index
+    }
+
+    const hasNext = computed(() => {
+        const length = playlist.value.length
+        if (!length) return false
+        if (repeat.value !== 'off') return length > 1
+        if (shuffle.value) return availableNextIndices().length > 0
+        return currentIndex.value < length - 1
+    })
+
+    const hasPrevious = computed(() => {
+        const length = playlist.value.length
+        if (!length || currentIndex.value < 0) return false
+        if (repeat.value !== 'off') return length > 1
+        if (shuffle.value) return playedIndices.value.some((index) => index !== currentIndex.value)
+        return currentIndex.value > 0
+    })
+
+    // Persistencia
+    function saveState() {
+        const payload = {
+            volume: volume.value,
+            shuffle: shuffle.value,
+            repeat: repeat.value,
+            playbackSpeed: playbackSpeed.value,
+            favorites: Array.from(favoriteIds.value),
+            lastPlayedSong: currentSong.value
+                ? {
+                    id: currentSong.value.id,
+                    name: currentSong.value.name ?? null,
+                    currentTime: currentTime.value,
+                    updatedAt: Date.now(),
+                }
+                : null,
+            updatedAt: Date.now(),
+        }
+
+        writeLocal(STORAGE_KEY, JSON.stringify(payload))
+        writeLocal(FAVORITES_KEY, JSON.stringify(payload.favorites))
+
+        // Compatibilidad con la clave usada por versiones anteriores del reproductor.
+        writeLocal(LEGACY_KEY, JSON.stringify({
+            volume: volume.value,
+            currentTime: currentTime.value,
+            lastPlayedSongId: currentSong.value?.id ?? null,
+            timestamp: Date.now(),
+        }))
+    }
+
+    function loadSavedState() {
+        let data = {}
+
+        const raw = readLocal(STORAGE_KEY)
+        if (raw) {
+            try {
+                data = JSON.parse(raw) || {}
+            } catch {
+                setWarning('El estado guardado del reproductor no era válido y se ha descartado.')
+            }
+        }
+
+        let legacy = {}
+        const legacyRaw = readLocal(LEGACY_KEY)
+        if (legacyRaw) {
+            try {
+                legacy = JSON.parse(legacyRaw) || {}
+            } catch {
+                legacy = {}
+            }
+        }
+
+        const savedVolume = data.volume ?? legacy.volume
+        if (Number.isFinite(Number(savedVolume)) && savedVolume !== null && savedVolume !== undefined) {
+            setVolume(Number(savedVolume), { persist: false })
+        }
+
+        if (typeof data.shuffle === 'boolean') shuffle.value = data.shuffle
+        if (VALID_REPEAT.includes(data.repeat)) repeat.value = data.repeat
+
+        const savedSpeed = Number(data.playbackSpeed)
+        if (SPEEDS.includes(savedSpeed)) playbackSpeed.value = savedSpeed
+
+        let favorites = data.favorites
+        if (!favorites) {
+            const favoritesRaw = readLocal(FAVORITES_KEY)
+            if (favoritesRaw) {
+                try {
+                    favorites = JSON.parse(favoritesRaw)
+                } catch {
+                    setWarning('La lista de favoritos guardada no era válida y se ha descartado.')
+                }
+            }
+        }
+        setFavorites(favorites)
+    }
+
+    const restoreState = () => loadSavedState()
+
+    function startAutoSave() {
+        if (saveTimer !== null || typeof setInterval === 'undefined') return
+        saveTimer = setInterval(saveState, SAVE_INTERVAL_MS)
+    }
+
+    function stopAutoSave() {
+        if (saveTimer === null) return
+        clearInterval(saveTimer)
+        saveTimer = null
+    }
+
+    // Audio: un único elemento y listeners registrados una sola vez.
+    function handleTimeUpdate() {
+        if (!audioElement.value) return
+        const time = Number(audioElement.value.currentTime)
+        currentTime.value = Number.isFinite(time) ? time : 0
+    }
+
+    function updateDuration() {
+        const value = Number(audioElement.value?.duration)
+        if (Number.isFinite(value) && value > 0) duration.value = value
+    }
+
+    function handleLoadedMetadata() {
+        updateDuration()
+    }
+
+    function handleDurationChange() {
+        updateDuration()
+    }
+
+    function handlePlay() {
+        isPlaying.value = true
+        loading.value = false
+        clearError()
+    }
+
+    function handlePause() {
+        isPlaying.value = false
+        loading.value = false
+    }
+
+    function handleEnded() {
+        isPlaying.value = false
+        loading.value = false
+        Promise.resolve(next(true)).catch(() => {
+            setError('No se pudo reproducir la siguiente canción. Inténtalo de nuevo.')
+        })
+    }
+
+    function mediaErrorMessage(audio) {
+        const code = audio?.error?.code
+        if (code === 1) return 'La carga de la canción se canceló. Inténtalo de nuevo.'
+        if (code === 2) return 'No se pudo cargar la canción. Revisa tu conexión e inténtalo de nuevo.'
+        if (code === 3) return 'El archivo de audio está dañado o no se puede decodificar.'
+        if (code === 4) return 'El formato de la canción no es compatible con este navegador.'
+        return 'No se pudo reproducir la canción. Comprueba tu conexión e inténtalo de nuevo.'
+    }
+
+    function handleAudioError() {
+        loading.value = false
+        isPlaying.value = false
+        setError(mediaErrorMessage(audioElement.value))
+    }
+
+    function handleWaiting() {
+        loading.value = true
+    }
+
+    function handleCanPlay() {
+        loading.value = false
+        clearError()
+        if (warning.value.startsWith('La conexión')) clearWarning()
+    }
+
+    function handleStalled() {
+        loading.value = true
+        setWarning('La conexión es lenta; la canción puede tardar unos segundos en cargar.')
+    }
+
+    const audioEvents = {
+        timeupdate: handleTimeUpdate,
+        loadedmetadata: handleLoadedMetadata,
+        durationchange: handleDurationChange,
+        play: handlePlay,
+        pause: handlePause,
+        ended: handleEnded,
+        error: handleAudioError,
+        waiting: handleWaiting,
+        canplay: handleCanPlay,
+        stalled: handleStalled,
+    }
+
+    function attachAudioListeners(audio) {
+        if (!audio || listenersAttached) return
+        Object.entries(audioEvents).forEach(([event, handler]) => {
+            audio.addEventListener(event, handler)
+        })
+        listenersAttached = true
+    }
+
+    function detachAudioListeners(audio) {
+        if (!audio || !listenersAttached) return
+        Object.entries(audioEvents).forEach(([event, handler]) => {
+            audio.removeEventListener(event, handler)
+        })
+        listenersAttached = false
+    }
+
+    function ensureAudio() {
+        if (typeof window === 'undefined' || typeof Audio === 'undefined') {
+            setError('Este navegador no admite la reproducción de audio.')
+            return null
+        }
+
+        if (!audioElement.value) {
+            const audio = new Audio()
+            audio.preload = 'auto'
+            audio.volume = volume.value
+            audio.playbackRate = playbackSpeed.value
+            audioElement.value = audio
+            attachAudioListeners(audio)
+            startAutoSave()
+        }
+
         return audioElement.value
     }
 
-    // Configurar listeners del audio - VERSIÓN CORREGIDA
-    const setupAudioListeners = () => {
-        if (!audioElement.value) return
-
-        // Limpiar listeners existentes para evitar duplicados
-        audioElement.value.removeEventListener('timeupdate', handleTimeUpdate)
-        audioElement.value.removeEventListener('durationchange', handleDurationChange)
-        audioElement.value.removeEventListener('ended', handleEnded)
-        audioElement.value.removeEventListener('play', handlePlay)
-        audioElement.value.removeEventListener('pause', handlePause)
-        audioElement.value.removeEventListener('loadedmetadata', handleLoadedMetadata)
-        audioElement.value.removeEventListener('canplay', handleCanPlay)
-
-        // Agregar nuevos listeners
-        audioElement.value.addEventListener('timeupdate', handleTimeUpdate)
-        audioElement.value.addEventListener('durationchange', handleDurationChange)
-        audioElement.value.addEventListener('ended', handleEnded)
-        audioElement.value.addEventListener('play', handlePlay)
-        audioElement.value.addEventListener('pause', handlePause)
-        audioElement.value.addEventListener('loadedmetadata', handleLoadedMetadata)
-        audioElement.value.addEventListener('canplay', handleCanPlay)
-    }
-
-    // Handlers separados para mejor depuración
-    const handleTimeUpdate = () => {
-        if (audioElement.value) {
-            currentTime.value = audioElement.value.currentTime
-            console.log('Time update:', currentTime.value)
-        }
-    }
-
-    const handleDurationChange = () => {
-        if (audioElement.value && !isNaN(audioElement.value.duration)) {
-            duration.value = audioElement.value.duration
-            console.log('Duration change:', duration.value)
-        }
-    }
-
-    const handleEnded = () => {
-        console.log('Song ended')
-        next()
-    }
-
-    const handlePlay = () => {
-        isPlaying.value = true
-        console.log('Play event')
-    }
-
-    const handlePause = () => {
+    function handlePlayFailure(reason) {
+        loading.value = false
         isPlaying.value = false
-        console.log('Pause event')
-    }
 
-    const handleLoadedMetadata = () => {
-        if (audioElement.value && !isNaN(audioElement.value.duration)) {
-            duration.value = audioElement.value.duration
-            console.log('Loaded metadata - duration:', duration.value)
+        const name = reason?.name || ''
+        if (name === 'NotAllowedError' || name === 'SecurityError') {
+            setError('El navegador bloqueó la reproducción. Pulsa de nuevo el botón de reproducir.')
+        } else if (name === 'NotSupportedError') {
+            setError('El formato de audio no es compatible con este navegador.')
+        } else {
+            setError('No se pudo iniciar la reproducción. Comprueba tu conexión e inténtalo de nuevo.')
         }
     }
 
-    const handleCanPlay = () => {
-        console.log('Can play event')
+    function registerHistory(songId) {
+        if (historyRecordedFor === songId) return
+        historyRecordedFor = songId
+
+        Promise.resolve(apiRecordHistory(songId, 'player')).catch(() => {
+            setWarning('No se pudo registrar esta escucha en tu historial.')
+        })
     }
 
-    // Reproducir una canción
-    const playSong = async (song) => {
-        try {
-            const audio = initAudio()
+    // Acciones de reproducción
+    function play() {
+        const audio = ensureAudio()
+        if (!audio) return Promise.resolve(false)
 
-            console.log('Playing song:', song.name)
-
-            // Si es la misma canción, solo reproducir/pausar
-            if (currentSong.value?.id === song.id) {
-                if (isPlaying.value) {
-                    pause()
-                } else {
-                    await play()
-                }
-                return
-            }
-
-            // Cambiar a nueva canción
-            currentSong.value = song
-
-            // Actualizar índice en la playlist
-            const index = playlist.value.findIndex(s => s.id === song.id)
-            if (index !== -1) {
-                currentIndex.value = index
-            }
-
-            // IMPORTANTE: Resetear tiempos antes de cargar nueva canción
-            currentTime.value = 0
-            duration.value = 0
-
-            // Configurar URL del audio
-            const streamUrl = `/songs/${song.id}/stream`
-            console.log('Stream URL:', streamUrl)
-
-            audio.src = streamUrl
-            audio.playbackRate = playbackSpeed.value
-            audio.volume = volume.value // Asegurar que mantiene el volumen actual
-
-            // Cargar y reproducir
-            audio.load()
-
-            // Esperar a que esté listo para reproducir
-            await new Promise((resolve) => {
-                audio.addEventListener('canplay', resolve, { once: true })
-            })
-
-            await audio.play()
-
-            // Verificar si es favorita
-            checkFavoriteStatus(song.id)
-
-        } catch (error) {
-            console.error('Error al reproducir:', error)
+        if (!currentSong.value) {
+            setError('Selecciona una canción antes de reproducir.')
+            return Promise.resolve(false)
         }
+
+        clearError()
+        loading.value = true
+
+        return audio.play().then(() => {
+            loading.value = false
+            return true
+        }).catch((reason) => {
+            handlePlayFailure(reason)
+            return false
+        })
     }
 
-    // Reproducir
-    const play = async () => {
-        if (audioElement.value && currentSong.value) {
-            try {
-                await audioElement.value.play()
-            } catch (error) {
-                console.error('Error al reproducir:', error)
-            }
+    function pause() {
+        const audio = audioElement.value
+        if (audio) audio.pause()
+        isPlaying.value = false
+        loading.value = false
+    }
+
+    function togglePlay() {
+        if (!currentSong.value) {
+            if (playlist.value.length) return playSong(playlist.value[0])
+            setError('No hay ninguna canción disponible para reproducir.')
+            return Promise.resolve(false)
         }
-    }
 
-    // Pausar
-    const pause = () => {
-        if (audioElement.value) {
-            audioElement.value.pause()
-        }
-    }
-
-    // Alternar play/pause
-    const togglePlay = () => {
         if (isPlaying.value) {
             pause()
-        } else {
-            play()
+            return Promise.resolve(true)
         }
+        return play()
     }
 
-    // Siguiente canción
-    const next = () => {
-        if (playlist.value.length === 0) return
-
-        let nextIndex = currentIndex.value + 1
-        if (nextIndex >= playlist.value.length) {
-            nextIndex = 0
+    async function playSong(song, queue = null, options = {}) {
+        if (!song || song.id === undefined || song.id === null) {
+            setError('No se pudo identificar la canción seleccionada.')
+            return false
         }
 
-        const nextSong = playlist.value[nextIndex]
-        if (nextSong) {
-            playSong(nextSong)
+        if (Array.isArray(queue)) setPlaylist(queue)
+
+        const audio = ensureAudio()
+        if (!audio) return false
+
+        clearError()
+        clearWarning()
+
+        const sameSong = currentSong.value?.id === song.id
+        if (sameSong && !options.force) {
+            if (isPlaying.value) {
+                pause()
+                return true
+            }
+            return play()
         }
-    }
 
-    // Canción anterior
-    const previous = () => {
-        if (playlist.value.length === 0) return
-
-        let prevIndex = currentIndex.value - 1
-        if (prevIndex < 0) {
-            prevIndex = playlist.value.length - 1
+        const oldIndex = currentIndex.value
+        if (!sameSong && oldIndex >= 0) {
+            playedIndices.value = [...playedIndices.value.filter((index) => index !== oldIndex), oldIndex]
         }
 
-        const prevSong = playlist.value[prevIndex]
-        if (prevSong) {
-            playSong(prevSong)
+        currentSong.value = song
+
+        const index = playlist.value.findIndex((item) => item.id === song.id)
+        currentIndex.value = index
+        if (index >= 0) {
+            playedIndices.value = [...playedIndices.value.filter((item) => item !== index), index]
         }
-    }
 
-    // Adelantar 10 segundos
-    const forward = () => {
-        if (audioElement.value) {
-            audioElement.value.currentTime += 10
-        }
-    }
-
-    // Retroceder 10 segundos
-    const rewind = () => {
-        if (audioElement.value) {
-            audioElement.value.currentTime -= 10
-        }
-    }
-
-    // Buscar posición
-    const seek = (event) => {
-        if (!audioElement.value || duration.value === 0) return
-
-        const rect = event.currentTarget.getBoundingClientRect()
-        const x = event.clientX - rect.left
-        const percentage = x / rect.width
-        const newTime = percentage * duration.value
-
-        audioElement.value.currentTime = newTime
-    }
-
-    // Cambiar velocidad
-    const togglePlaybackSpeed = () => {
-        const speeds = [1, 1.25, 1.5, 2]
-        const currentSpeedIndex = speeds.indexOf(playbackSpeed.value)
-        const nextIndex = (currentSpeedIndex + 1) % speeds.length
-        playbackSpeed.value = speeds[nextIndex]
-
-        if (audioElement.value) {
-            audioElement.value.playbackRate = playbackSpeed.value
-        }
-    }
-
-    // --- NUEVO: Control de Sonido de la Música ---
-    const setVolume = (value) => {
-        // Convertimos explícitamente a número por si acaso llega como String desde el input HTML
-        const numericVolume = parseFloat(value)
-
-        // Si por algún motivo no es un número válido (NaN), lo dejamos en un valor por defecto seguro (ej: 0.5)
-        if (isNaN(numericVolume)) return
-
-        // Aseguramos que el volumen esté estrictamente entre 0 y 1
-        const safeVolume = Math.max(0, Math.min(1, numericVolume))
-
-        volume.value = safeVolume
-
-        if (audioElement.value) {
-            audioElement.value.volume = safeVolume
-            console.log('Volumen del elemento de audio actualizado a:', audioElement.value.volume) // Para depuración
-        }
-    }
-
-    // Establecer lista de reproducción
-    const setPlaylist = (songs) => {
-        playlist.value = songs
-        console.log('Playlist set:', songs.length, 'songs')
-    }
-
-    const addToQueue = (song) => {
-        playlist.value.push(song)
-    }
-
-    const clearQueue = () => {
-        playlist.value = []
-        currentSong.value = null
-        currentIndex.value = -1
-        if (audioElement.value) {
-            audioElement.value.pause()
-            audioElement.value.src = ''
-        }
-        isPlaying.value = false
+        const fallbackDuration = Number(song.duration_seconds)
         currentTime.value = 0
-        duration.value = 0
-    }
+        duration.value = Number.isFinite(fallbackDuration) && fallbackDuration > 0 ? fallbackDuration : 0
+        loading.value = true
+        syncFavorite()
 
-    const checkFavoriteStatus = async (songId) => {
         try {
-            isFavorite.value = false
-        } catch (error) {
-            console.error('Error al verificar favorito:', error)
+            audio.src = route('songs.stream', song.id)
+            audio.playbackRate = playbackSpeed.value
+            audio.volume = volume.value
+            audio.load()
+
+            registerHistory(song.id)
+
+            // No esperamos a 'canplay': play() encola la reproducción y responde al gesto del usuario.
+            await audio.play()
+            loading.value = false
+            return true
+        } catch (reason) {
+            handlePlayFailure(reason)
+            return false
         }
     }
 
-    const toggleFavorite = async () => {
-        if (!currentSong.value) return
-        isFavorite.value = !isFavorite.value
+    function playQueueIndex(index) {
+        const song = playlist.value[index]
+        if (!song) return Promise.resolve(false)
+
+        const restartSameSong = currentSong.value?.id === song.id
+        return playSong(song, null, { force: restartSameSong })
     }
 
-    const saveState = () => {
-        if (currentSong.value) {
-            localStorage.setItem('lastPlayedSong', JSON.stringify({
-                id: currentSong.value.id,
-                currentTime: currentTime.value,
-                volume: volume.value, // Guardar también el volumen configurado
-                timestamp: Date.now()
-            }))
+    function pickNextIndex() {
+        const length = playlist.value.length
+        if (!length) return -1
+
+        if (shuffle.value) {
+            const available = availableNextIndices()
+            if (available.length) {
+                return available[Math.floor(Math.random() * available.length)]
+            }
+            if (repeat.value !== 'off') {
+                playedIndices.value = currentIndex.value >= 0 ? [currentIndex.value] : []
+                return randomOtherIndex()
+            }
+            return -1
         }
+
+        let index = currentIndex.value + 1
+        if (index >= length) {
+            if (repeat.value === 'off') return -1
+            index = 0
+        }
+        return index
     }
 
-    const loadSavedState = () => {
-        const saved = localStorage.getItem('lastPlayedSong')
-        if (saved) {
+    function next(auto = false) {
+        if (!playlist.value.length) {
+            if (auto) pause()
+            return Promise.resolve(false)
+        }
+
+        if (auto && repeat.value === 'one') {
+            const audio = ensureAudio()
+            if (!audio) return Promise.resolve(false)
+
             try {
-                const data = JSON.parse(saved)
-                console.log('Loaded saved state:', data)
-                if (data.volume !== undefined) {
-                    setVolume(data.volume)
-                }
-            } catch (e) {
-                console.error('Error al cargar estado:', e)
+                audio.currentTime = 0
+                currentTime.value = 0
+                loading.value = true
+                return audio.play().then(() => {
+                    loading.value = false
+                    return true
+                }).catch((reason) => {
+                    handlePlayFailure(reason)
+                    return false
+                })
+            } catch (reason) {
+                handlePlayFailure(reason)
+                return Promise.resolve(false)
             }
         }
+
+        const index = pickNextIndex()
+        if (index < 0) {
+            if (auto) pause()
+            return Promise.resolve(false)
+        }
+
+        return playQueueIndex(index)
     }
 
-    // Salvar estado periódicamente
-    setInterval(() => {
-        if (isPlaying.value) {
-            saveState()
+    function previous() {
+        if (!playlist.value.length || currentIndex.value < 0) return Promise.resolve(false)
+
+        if (shuffle.value) {
+            const played = playedIndices.value.filter((index) => index !== currentIndex.value)
+            let index = played.length
+                ? played[played.length - 1]
+                : repeat.value !== 'off'
+                    ? randomOtherIndex()
+                    : -1
+
+            if (index < 0) return Promise.resolve(false)
+            playedIndices.value = playedIndices.value.filter((item) => item !== index)
+            return playQueueIndex(index)
         }
-    }, 5000)
+
+        let index = currentIndex.value - 1
+        if (index < 0) {
+            if (repeat.value === 'off') return Promise.resolve(false)
+            index = playlist.value.length - 1
+        }
+
+        return playQueueIndex(index)
+    }
+
+    // Navegación dentro de la pista
+    function seek(target) {
+        const audio = audioElement.value || ensureAudio()
+        if (!audio) return
+
+        const max = Number.isFinite(duration.value) && duration.value > 0 ? duration.value : 0
+        let seconds = null
+
+        if (typeof target === 'number') {
+            seconds = target
+        } else if (target && typeof target.clientX === 'number' && target.currentTarget?.getBoundingClientRect) {
+            const rect = target.currentTarget.getBoundingClientRect()
+            if (rect.width <= 0) return
+            seconds = ((target.clientX - rect.left) / rect.width) * max
+        }
+
+        if (!Number.isFinite(seconds)) return
+
+        const safeTime = Math.max(0, max > 0 ? Math.min(max, seconds) : seconds)
+        try {
+            audio.currentTime = safeTime
+            currentTime.value = safeTime
+            clearError()
+        } catch {
+            setError('No se pudo mover el reproductor a esa posición.')
+        }
+    }
+
+    function forward() {
+        seek(currentTime.value + 10)
+    }
+
+    function rewind() {
+        seek(currentTime.value - 10)
+    }
+
+    // Volumen y velocidad
+    function setVolume(value, options = {}) {
+        const numeric = Number(value)
+        if (!Number.isFinite(numeric)) {
+            setWarning('El valor de volumen indicado no es válido.')
+            return
+        }
+
+        const safe = Math.max(0, Math.min(1, numeric))
+        if (safe > 0) previousVolume.value = safe
+        volume.value = safe
+
+        if (audioElement.value) {
+            audioElement.value.volume = safe
+            audioElement.value.muted = false
+        }
+
+        if (!options.persist) saveState()
+    }
+
+    function toggleMute() {
+        if (volume.value > 0) {
+            previousVolume.value = volume.value
+            setVolume(0)
+            return
+        }
+        setVolume(previousVolume.value > 0 ? previousVolume.value : 0.7)
+    }
+
+    function togglePlaybackSpeed() {
+        const currentIndexSpeed = SPEEDS.indexOf(playbackSpeed.value)
+        playbackSpeed.value = SPEEDS[(currentIndexSpeed + 1) % SPEEDS.length]
+
+        if (audioElement.value) audioElement.value.playbackRate = playbackSpeed.value
+        saveState()
+    }
+
+    // Cola de reproducción
+    function setPlaylist(songs) {
+        const list = Array.isArray(songs) ? songs.filter((song) => song && song.id !== undefined && song.id !== null) : []
+        playlist.value = [...list]
+
+        const index = list.findIndex((song) => song.id === currentSong.value?.id)
+        currentIndex.value = index
+        playedIndices.value = index >= 0 ? [index] : []
+        saveState()
+    }
+
+    function addToQueue(song) {
+        if (!song || song.id === undefined || song.id === null) return
+        if (playlist.value.some((item) => item.id === song.id)) return
+
+        playlist.value.push(song)
+        if (currentIndex.value < 0 && !currentSong.value) currentIndex.value = 0
+        saveState()
+    }
+
+    function removeFromQueue(target) {
+        const index = typeof target === 'number'
+            ? target
+            : playlist.value.findIndex((song) => song.id === target?.id)
+
+        if (index < 0 || index >= playlist.value.length) return
+
+        playlist.value.splice(index, 1)
+        playedIndices.value = playedIndices.value
+            .filter((item) => item !== index)
+            .map((item) => (item > index ? item - 1 : item))
+
+        if (index === currentIndex.value) {
+            pause()
+            currentSong.value = null
+            currentIndex.value = -1
+            currentTime.value = 0
+            duration.value = 0
+            syncFavorite()
+        } else if (index < currentIndex.value) {
+            currentIndex.value -= 1
+        }
+
+        saveState()
+    }
+
+    function clearQueue() {
+        pause()
+        playlist.value = []
+        playedIndices.value = []
+        currentIndex.value = -1
+        currentSong.value = null
+        isFavorite.value = false
+        currentTime.value = 0
+        duration.value = 0
+        clearError()
+        saveState()
+    }
+
+    // Favoritos
+    async function toggleFavorite() {
+        if (!currentSong.value) return false
+
+        const songId = Number(currentSong.value.id)
+        const previous = favoriteIds.value.has(songId)
+        const optimistic = !previous
+
+        applyFavorite(songId, optimistic)
+        saveState()
+
+        try {
+            const response = await apiToggleFavorite(songId)
+            const confirmed = typeof response?.favorite === 'boolean' ? response.favorite : optimistic
+            applyFavorite(songId, confirmed)
+            saveState()
+            clearWarning()
+            return confirmed
+        } catch {
+            applyFavorite(songId, previous)
+            saveState()
+            setWarning('No se pudo actualizar tu lista de favoritos. Inténtalo de nuevo.')
+            return previous
+        }
+    }
+
+    function retry() {
+        clearError()
+        clearWarning()
+
+        if (!currentSong.value) {
+            if (playlist.value.length) return playSong(playlist.value[0])
+            return Promise.resolve(false)
+        }
+
+        return playSong(currentSong.value, null, { force: true })
+    }
+
+    function destroy() {
+        saveState()
+        stopAutoSave()
+
+        const audio = audioElement.value
+        if (audio) {
+            audio.pause()
+            detachAudioListeners(audio)
+            audio.removeAttribute('src')
+            audioElement.value = null
+        }
+
+        historyRecordedFor = null
+        playedIndices.value = []
+        isPlaying.value = false
+        loading.value = false
+    }
+
+    loadSavedState()
+    startAutoSave()
+    onScopeDispose(destroy)
 
     return {
         currentSong,
         isPlaying,
         currentTime,
         duration,
+        volume,
+        previousVolume,
+        isMuted,
         playbackSpeed,
+        isFavorite,
         playlist,
         currentIndex,
-        isFavorite,
-        volume,
+        shuffle,
+        repeat,
+        loading,
+        error,
+        warning,
+        audioElement,
         progressPercentage,
+        hasNext,
+        hasPrevious,
+        formattedCurrentTime,
+        formattedDuration,
         formatTime,
         playSong,
         play,
@@ -363,10 +802,16 @@ export const usePlayerStore = defineStore('player', () => {
         seek,
         togglePlaybackSpeed,
         setVolume,
+        toggleMute,
         setPlaylist,
         addToQueue,
+        removeFromQueue,
         clearQueue,
         toggleFavorite,
-        loadSavedState
+        retry,
+        saveState,
+        restoreState,
+        loadSavedState,
+        destroy,
     }
 })

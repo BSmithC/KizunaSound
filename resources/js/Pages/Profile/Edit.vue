@@ -6,48 +6,33 @@ import UpdateProfileInformationForm from './Partials/UpdateProfileInformationFor
 import { Head } from '@inertiajs/vue3';
 
 defineProps({
-    mustVerifyEmail: {
-        type: Boolean,
-    },
-    status: {
-        type: String,
-    },
+    mustVerifyEmail: { type: Boolean, default: false },
+    status: { type: String, default: '' },
 });
 </script>
 
 <template>
-    <Head title="Profile" />
+    <Head title="Perfil y configuración" />
 
     <AuthenticatedLayout>
-        <template #header>
-            <h2
-                class="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-200"
-            >
-                Profile
-            </h2>
-        </template>
+        <div class="ks-page">
+            <section class="ks-hero mb-10 p-6 sm:p-8">
+                <p class="ks-eyebrow">設定 · Perfil y configuración</p>
+                <h1 class="ks-title mt-2 text-3xl sm:text-4xl">Tu cuenta</h1>
+                <p class="ks-subtitle mt-2">Administra tus datos personales, contraseña y preferencias.</p>
+            </section>
 
-        <div class="py-12">
-            <div class="mx-auto max-w-7xl space-y-6 sm:px-6 lg:px-8">
-                <div
-                    class="bg-white p-4 shadow sm:rounded-lg sm:p-8 dark:bg-gray-800"
-                >
-                    <UpdateProfileInformationForm
-                        :must-verify-email="mustVerifyEmail"
-                        :status="status"
-                        class="max-w-xl"
-                    />
+            <div class="space-y-6">
+                <div class="ks-card p-6 sm:p-8">
+                    <UpdateProfileInformationForm :must-verify-email="mustVerifyEmail" :status="status"
+                        class="max-w-xl" />
                 </div>
 
-                <div
-                    class="bg-white p-4 shadow sm:rounded-lg sm:p-8 dark:bg-gray-800"
-                >
+                <div class="ks-card p-6 sm:p-8">
                     <UpdatePasswordForm class="max-w-xl" />
                 </div>
 
-                <div
-                    class="bg-white p-4 shadow sm:rounded-lg sm:p-8 dark:bg-gray-800"
-                >
+                <div class="ks-card p-6 sm:p-8">
                     <DeleteUserForm class="max-w-xl" />
                 </div>
             </div>
