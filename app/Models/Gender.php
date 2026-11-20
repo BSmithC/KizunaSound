@@ -2,17 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-
-class Gender extends Model
-{
-    protected $fillable = [
-        'name',
-        'description',
-    ];
-
-    public function songs()
-    {
-        return $this->hasMany(Song::class);
-    }
-}
+/**
+ * Compatibilidad con el código existente.
+ * El modelo canónico de géneros es Genre, que apunta a la tabla `genders`.
+ */
+class Gender extends Genre {}

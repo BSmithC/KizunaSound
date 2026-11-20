@@ -13,6 +13,6 @@ class Credit extends Model
 
     public function details()
     {
-        return $this->hasMany(CreditDetail::class);
+        return $this->hasMany(CreditDetail::class, 'credit_details_id');
     }
 }
